@@ -1,0 +1,194 @@
+# $Id: generate_image 47 2013-08-19 05:15:43Z larry $
+
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+# Create the most minimal EL image as possible
+# inside the build directory.  Use the genimage
+# utility provided by provide_genimage()
+generate_image () {
+
+
+    # Set up symbolic links required by newer versions of Fedora
+    case $OS_FAMILY in
+        el[56] )
+            FS_PREFIX=""
+            ;;
+        el[7] )
+            FS_PREFIX="usr"
+            for dir in sbin bin lib64 lib; do
+                ln -sf "${FS_PREFIX}/${dir}" "${IMGROOT}/${dir}"
+            done
+            ;;
+        * )
+            echo "Unsupported \$OS_FAMILY $OS_FAMILY"
+            ;;
+    esac
+
+    target_mkdir "/${FS_PREFIX}/sbin"
+
+    GENIMAGE=$(provide_genimage)
+
+    echo "Using genimage from $GENIMAGE"
+
+
+
+    # Copy some default configuration files to /etc/ in the build
+    # directory
+    mkdir -p ${IMGROOT}/etc/
+
+    for _FILE in passwd group motd; do
+        install -o root -g root -m 644 \
+            ${IMAGEFILES}/etc/${_FILE}.netboot ${IMGROOT}/etc/${_FILE}
+    done
+
+    install -o root -g root -m 400 \
+        ${IMAGEFILES}/etc/shadow.netboot ${IMGROOT}/etc/shadow
+
+
+    # Create an RPM macros file
+    mkdir -p $IMGROOT/etc/rpm/
+    if [[ "$INSTALL_DOCS" == "no" ]]; then
+        echo '%_excludedocs 1' >> $IMGROOT/etc/rpm/macros
+    fi
+    if [[ "$INSTALL_LOCALES" != "" ]]; then
+        echo '%_install_langs '"${INSTALL_LOCALES}" >> $IMGROOT/etc/rpm/macros
+    fi
+
+    ln -sf $IMGROOT/etc/rpm/macros ~/.rpmmacros
+
+
+    #ln -s $IMGROOT/sbin/busybox $IMGROOT/sbin/busybox.anaconda
+    cp -v $IMAGEFILES/busybox.anaconda $IMGROOT/sbin/
+    cp -v $IMAGEFILES/nash $IMGROOT/sbin/
+
+    if [ ! -d $IMGROOT/dev ]; then
+        mkdir $IMGROOT/dev
+    fi
+
+    NET_MODULES="bnx2,tg3,forcedeth,igb,e1000,e1000e,virtio,virtio_pci,virtio_net"
+    STORAGE_MODULES="sd_mod,scsi_transport_sas,mptscsih,mptsas,ata_piix,sata_nv,sata_mv,virtio_blk,auth_rpcgss"
+
+    case $OS_FAMILY in
+        el5 ) 
+            FS_MODULES="ext3"
+            ;;
+        el[67] ) 
+            FS_MODULES="ext3,ext4"
+            target_mkdir /${FS_PREFIX}/lib/firmware
+            for MODULE in $(echo $NET_MODULES $STORAGE_MODULES | tr ',' ' '); do
+                if [ -e /lib/firmware/$MODULE ]; then
+                    rsync -avSH /lib/firmware/$MODULE $IMGROOT/lib/firmware/
+                fi
+            done
+
+            cat > $IMGROOT/sbin/hotplug << 'EOF'
+#!/sbin/busybox.anaconda sh
+echo "$0 active:"
+/sbin/busybox.anaconda sh
+env
+echo 1 > /sys/$DEVPATH/loading
+cat /lib/firmware/$FIRMWARE > /sys/$DEVPATH/data
+echo 0 > /sys/$DEVPATH/loading
+echo "$0 exiting"
+EOF
+            chmod +x $IMGROOT/sbin/hotplug
+            ;;
+        * )
+            echo "Unsupported \$OS_FAMILY $OS_FAMILY"
+            fail
+            ;;
+    esac
+
+    # -i: Interfaces to activate
+    # -n: Modules to try loading before bringing up the network
+    # -o: OS version
+    # -p: xCAT profile to use
+    # -l: Maximum size of / ramdisk (tmpfs)
+    cd /opt/xcat/share/xcat/netboot/rh
+    PERL5LIB=/opt/xcat/share/xcat/netboot/imgutils/ $GENIMAGE \
+    -l ${ROOTSIZE}m \
+    -i eth0 \
+    -n ${NET_MODULES},${FS_MODULES},${STORAGE_MODULES} \
+    -a $ARCH \
+    -k $KERNEL \
+    -o $OS \
+    -p $PROFILE \
+    0>/dev/null
+
+
+    case $OS_FAMILY in
+        el5 ) 
+            mknod $IMGROOT/dev/rtc c 10 135
+            ;;
+        el6 ) 
+            ;;
+    esac
+
+
+    # Remove some packages that cannot be excluded in the packages
+    # file.  See
+    # http://lists.centos.org/pipermail/centos/2009-April/075627.html
+    #
+    # Removing util-linux-ng with yum and %_excludedocs set appears
+    # not to work; use the "rpm" utility instead until a solution can
+    # be found
+    $YUM install rpm
+    in_target rpm -e --nodeps util-linux-ng
+    $YUM --releasever=${OS_RELEASE} remove slang usermode wireless-tools
+    $YUM remove cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb
+    $YUM remove libvolume_id libxml2-python pciutils
+    $YUM remove cyrus-sasl-lib logrotate
+    $YUM remove rpm
+
+
+    # Remove unnecessary locales
+    if [[ "$INSTALL_LOCALES" != "" ]]; then
+        echo "Removing locales not matching $INSTALL_LOCALES"
+        # %_install_langs does not seem to affect what is in the localedef
+        # file.  Remove unnecessary locales from the localedef file
+        for _LOCALE in $(in_target localedef --list-archive); do
+            _LOCALE_VALIDATED=0
+            for _OK_LOCALE in $(echo "$INSTALL_LOCALES" | tr ':' ' '); do
+                if [[ "$_LOCALE" == "$_OK_LOCALE" ]]; then
+                    _LOCALE_VALIDATED=1
+                fi 
+            done
+            if [ $_LOCALE_VALIDATED -eq 0 ]; then
+                in_target localedef --delete-from-archive "$_LOCALE"
+            fi
+        done
+
+        # Now, we need to install the new locale-archive file as
+        # locale-archive.tmpl, and run build-locale-archive to
+        # generate a much smaller locale-archive file.  Once this is
+        # done, we can remove locale-archive.tmpl
+        install -o root -g root -m 644 $IMGROOT/usr/lib/locale/locale-archive \
+            $IMGROOT/usr/lib/locale/locale-archive.tmpl
+        in_target build-locale-archive
+        rm -f $IMGROOT/usr/lib/locale/locale-archive.tmpl
+
+    fi
+
+    rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
+
+}

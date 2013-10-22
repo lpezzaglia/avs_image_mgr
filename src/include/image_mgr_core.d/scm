@@ -1,0 +1,125 @@
+# $Id: scm 36 2013-07-23 18:16:05Z larry $
+
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+# Commit the built image to the SCM repository
+# No arguments are accepted
+commit_to_scm () {
+    cd $IMG_BASE_DIR
+
+    # Add the image creation script and the postscripts
+    if [ ! -d build_info ]; then
+        mkdir build_info
+    fi
+    cat $IMAGE_MGR > build_info/image_mgr.sh
+    rsync -aSHC /install/postscripts build_info/ 
+    rsync -aSHC /install/custom/netboot build_info/
+    rsync -aSHC $(dirname ${IMAGE_MGR_BASE})/$(basename ${IMAGE_MGR_BASE}) build_info/
+    cp $__IMG_MGR_LOG build_info/image_mgr.log
+    print_stats > build_info/stats
+
+
+    # Commit only changes to text,owner,group, and mode (not mtime),
+    # and do not make a commit if no changes have been made.  See
+    # http://permalink.gmane.org/gmane.comp.sysutils.backup.fsvs.general/475
+    # for more information.
+
+    # The above link suggests that something like this ought to work:
+    # $FSVS -C -o empty_commit=no -f text,owner,group,mode ci -m "${FULL_COMMIT_MESSAGE}" #1>/dev/null
+    # However, this command still results in a list of mtime-only
+    # changes being added to the commit log
+
+    IMG_TMP_DIR=$(mktemp -d ${BASE}/image.XXXXXXXX)
+
+    # We check out the previous revision to ${IMG_TMP_DIR}/, rsync our
+    # changes, excluding mtime-only changes, to that directory, and
+    # then do a checkin from ${IMG_TMP_DIR}/
+
+    FULL_COMMIT_MESSAGE=$(echo -e "${USER_NAME}; Image rebuild completed at $(date)\n${COMMIT_MESSAGE}")
+    echo ${FSVS_REPOSITORY}/trunk/ | $FSVS urls load
+    cd $IMG_TMP_DIR
+
+    $FSVS co ${FSVS_REPOSITORY}/trunk/
+    rsync -crlpgoDS --exclude=markers --exclude=rootimg/chos/local/* --force --delete ${IMG_BASE_DIR}/ ${IMG_TMP_DIR}/
+    rm -rf ${IMG_TMP_DIR}/markers
+    $FSVS -C -o empty_commit=no ci -m "${FULL_COMMIT_MESSAGE}"
+    echo "fsvs exited with status: $?"
+    $FSVS log -r HEAD -v
+}
+
+# Print diffs between two revisions of an image
+# Arguments:
+# $1    == old revision number (required)
+# $2    == new revision number (required)
+# $3... == Optional control keywords, which may be any of the
+#          following:
+#
+# assume:  Assume the preparatory checkout has already been done.  Use
+#          with caution.  Incorrect use of this functionality may result in
+#          inaccurate diffs.
+#
+# keep:    Do not remove the preparatory checkout directory after the
+#          diff is completed.  This may be useful when combined with
+#          "assume"
+diff_from_scm () {
+    _ASSUME=1
+    _KEEP=0
+
+    while [ $# -gt 0 ] ; do
+        case $1 in
+            assume )
+                _ASSUME=1
+                ;;
+            keep )
+                _KEEP=1
+                ;;
+            * )
+                ;;
+        esac
+        shift
+    done
+
+    if [ $_ASSUME -eq 1 ]; then
+        DIFF_SCRATCH_DIR="$(ls -1dtr ${BASE}/image.diff.${PROFILE}.${DIFF_OLD_REVISION}.* | tail -1)"
+        echo $DIFF_SCRATCH_DIR
+        cd $DIFF_SCRATCH_DIR
+    else
+        DIFF_SCRATCH_DIR=$(mktemp -d ${BASE}/image.diff.${PROFILE}.${DIFF_OLD_REVISION}.XXXXXXXX)
+        cd $DIFF_SCRATCH_DIR
+        $FSVS co -r $DIFF_OLD_REVISION ${FSVS_REPOSITORY}/${DIFF_OLD_PATH}/
+    fi
+
+    echo ${FSVS_REPOSITORY}/${DIFF_NEW_PATH} | $FSVS urls load >/dev/null
+    $FSVS sync-repos >/dev/null
+    $FSVS diff -o diff_opt="-qpu" -r ${DIFF_NEW_REVISION} | \
+        grep -v '^diff -u.*$' | \
+        grep -v '^Type changed from local symlink to any-special.*$' | \
+        sed -ne 's/^\(.*\)\(\s\+\)\(.*\)$/\3\2:\1/p' | \
+        sed -e 's/^\(differ\s\+:Files\s\+\)\(.*\)$/\.\/\2 : \1/p' #| \
+        #cut -c -80
+    #$FSVS diff -o diff_opt="-qpu" -r ${DIFF_NEW_REVISION} | \
+        #awk '/differ/ {print $2}'
+    #$FSVS diff -o diff_opt="-qpu" -r ${DIFF_NEW_REVISION} | \
+        #awk '/^Only in repository/ {print $4}'
+}
+

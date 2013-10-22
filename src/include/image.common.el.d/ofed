@@ -1,0 +1,86 @@
+# $Id: ofed 42 2013-08-13 03:43:14Z larry $
+#
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+_create_addon_ofed() {
+    case $OS_FAMILY in
+        el5 ) 
+            error "OFED not supported on pdsf-el5"
+            ;;
+        el6 ) 
+            /bin/cp -v $IMAGEFILES/repo.ofed.sl6/* $ADDONROOT/etc/yum.repos.d/
+            #OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint ofed-docs"
+            OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib"
+            OFED_RPMS="$OFED_MINIMAL_RPMS"
+            $YUM install $OFED_RPMS
+            cp -v $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
+            in_target chkconfig openibd off
+            ;;
+    esac
+}
+
+_create_addon_mlnx_ofed() {
+    case $OS_FAMILY in
+        el5 ) 
+            error "OFED not supported on el5"
+            ;;
+        el6 ) 
+            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo
+            cat  $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo
+            #OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint ofed-docs"
+            OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
+            OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
+            $YUM install $OFED_RPMS
+            cp -v $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
+            in_target chkconfig openibd off
+            sed -i -e '/^.*lro.*$/d' ${ADDONROOT}/etc/modprobe.d/ib_ipoib.conf 
+            ;;
+    esac
+
+    mv $ADDONROOT/usr/bin/ibdiagnet $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
+    chmod 600 $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
+}
+
+_create_addon_mlnx_ofed_20_205() {
+    case $OS_FAMILY in
+        el5 ) 
+            error "OFED not supported on el5"
+            ;;
+        el6 ) 
+            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-2.0-2.0.5.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-2.0-2.0.5.repo
+            OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
+            OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
+            $YUM install $OFED_RPMS
+            cp -v $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
+            in_target chkconfig openibd off
+            sed -i -e '/^.*lro.*$/d' ${ADDONROOT}/etc/modprobe.d/ib_ipoib.conf 
+            ;;
+    esac
+
+    # Install customized version of mlnx_affinity
+    install -o root -g root -m 700 $IMAGEFILES/usr/sbin/mlnx_affinity \
+        $ADDONROOT/usr/sbin/mlnx_affinity
+
+    mv $ADDONROOT/usr/bin/ibdiagnet $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
+    chmod 600 $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
+}

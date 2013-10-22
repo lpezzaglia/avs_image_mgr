@@ -1,0 +1,227 @@
+# $Id: shared 42 2013-08-13 03:43:14Z larry $
+#
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+
+build_prep () {
+
+    cp -p $IMAGEFILES/etc/hosts $IMGROOT/etc/
+    cp -p $IMAGEFILES/etc/hosts.allow $IMGROOT/etc/
+    cp -p $IMAGEFILES/etc/hosts.deny $IMGROOT/etc/
+    cp /etc/localtime $IMGROOT/etc/
+    cp -p /etc/resolv.conf $IMGROOT/etc/
+
+    ### NETWORK ###
+    # Remove the 169.254.0.0 address that gets created. TMD 11 Feb 2010
+    echo "NOZEROCONF=yes" >> $IMGROOT/etc/sysconfig/network
+
+    # Remove /home directory so Cfengine can put a link in its place
+    rmdir $IMGROOT/home
+
+}
+
+mount_fs () {
+    echo
+}
+
+setup_yum_repos () {
+    cp -f $IMAGEFILES/config/yum.conf $IMGROOT/etc/yum.conf
+    # Do not install 32-bit RPMS.
+    echo 'exclude = *.i?86' >> $IMGROOT/etc/yum.conf
+
+    case $OS_FAMILY in
+        el5 ) 
+            rm -rf $IMGROOT/etc/yum.repos.d
+            $YUM clean all
+            cp -a /etc/yum.repos.d/ $IMGROOT/etc/
+            rm -rf $IMGROOT/etc/yum.repos.d/xCAT-*
+            rpm --root $IMGROOT -Uvh http://dl.fedoraproject.org/pub/epel/5/i386/epel-release-5-4.noarch.rpm
+            ;;
+        el6 ) 
+            rm -rf $IMGROOT/etc/yum.repos.d
+            $YUM clean all
+            target_mkdir /etc/yum.repos.d/
+            cp -av $IMAGEFILES/repo.sl6/* $IMGROOT/etc/yum.repos.d/
+            cp -av $IMAGEFILES/repo.unscd.sl6/* $IMGROOT/etc/yum.repos.d/
+            rm -f $IMGROOT/etc/yum.repos.d/local-repository.repo
+            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/kernel.repo.m4 > $IMGROOT/etc/yum.repos.d/kernel.repo
+            ;;
+        el7 ) 
+            cp -av $IMAGEFILES/repo.el7/* $IMGROOT/etc/yum.repos.d/
+            #m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/kernel.repo.m4 > $IMGROOT/etc/yum.repos.d/kernel.repo
+            ;;
+    esac
+
+}
+
+setup_disable_selinux () {
+    cp -f $IMAGEFILES/config/selinux.config /etc/selinux/config
+}
+
+setup_fstab () {
+    # Set the contents of the device field for / in fstab to $DATESTAMP
+    # This must be no more than 20 characters to avoid an extra line
+    # break in the "df" output
+    cat > $IMGROOT/etc/fstab << EOF
+$DATESTAMP / tmpfs rw 0 1
+tmpfs /tmp tmpfs rw,size=${ROOTSIZE}M 0 0
+tmpfs /var/log tmpfs rw,size=512M 0 0
+proc /proc proc rw 0 0
+sysfs /sys sysfs rw 0 0
+tmpfs    /dev/shm tmpfs defaults 0 0
+EOF
+
+    case $OS_FAMILY in
+        el5 ) 
+            ;;
+        el6 ) 
+            cat >> $IMGROOT/etc/fstab << EOF
+devpts /dev/pts devpts gid=5,mode=620 0 0
+EOF
+            ;;
+    esac
+
+}
+
+setup_enable_ntpd () {
+    $YUM install ntp
+    #in_target chkconfig --level 345 ntpd on
+}
+
+_create_addon_backuputils () {
+    $YUM install ncftp dump
+    rm -rf ${ADDONROOT}/usr/share/man
+}
+
+_create_addon_modules () {
+    $YUM install environment-modules
+    rm -rf ${ADDONROOT}/usr/share/man
+}
+
+setup_debug_image() {
+    $YUM install yum
+}
+
+setup_nrpe() {
+    if [ ! -d $IMGROOT/etc/nagios/ ]; then
+        mkdir $IMGROOT/etc/nagios/
+    fi
+    cp $IMAGEFILES/etc/nrpe.cfg $IMGROOT/etc/nagios/
+
+    $YUM install sudo pam_radius pam-radius-auth nrpe nagios-plugins-nrpe nagios-plugins-disk nagios-plugins-ide_smart nagios-plugins-tcp nagios-plugins-ssh
+
+    case $OS_FAMILY in
+        el[56] ) 
+            in_target chkconfig nrpe on
+            chmod u-s $IMGROOT/usr/lib64/nagios/plugins/*
+            ;;
+    esac
+
+}
+
+
+setup_sshd () {
+    # IPV4 for /etc/sysconfig/sshd
+    cat << EOF > $IMGROOT/etc/sysconfig/sshd
+OPTIONS="-4"
+EOF
+
+    $YUM install 'openssh-clients*' 'openssh-server*'
+}
+
+setup_ganglia () {
+
+    case $OS_FAMILY in
+        el[567] ) 
+            $YUM install ganglia-gmond
+
+            GMOND_CONF=$IMGROOT/etc/ganglia/gmond.conf
+            GMOND_CONF_SRC=$IMAGEFILES/gmond.conf 
+            ;;
+    esac
+    mkdir -p $IMGROOT/etc/ganglia
+    cp -f $GMOND_CONF_SRC $GMOND_CONF
+
+    case $OS_FAMILY in
+        el[56] ) 
+            in_target chkconfig gmond off
+            ;;
+    esac
+}
+
+setup_authorized_keys () {
+    # Setup authorized_keys
+    mkdir $IMGROOT/root/.ssh || /bin/true
+    cp /root/.ssh/authorized_keys $IMGROOT/root/.ssh/
+    chmod 400 $IMGROOT/root/.ssh/authorized_keys
+}
+
+setup_ssh_host_keys () {
+    #cp -a $IMAGEFILES/ssh_boot_tmp/* $IMGROOT/etc/ssh/
+    target_mkdir /etc/ssh/
+    cp -a /etc/xcat/hostkeys/* $IMGROOT/etc/ssh/
+    chmod 600 $IMGROOT/etc/ssh/*key
+}
+
+setup_install_autofs () {
+    $YUM install autofs nfs-utils
+    in_target chkconfig nfs on
+    in_target chkconfig autofs on
+
+    cp $IMAGEFILES/auto.master $IMGROOT/etc/
+    cp $IMAGEFILES/auto.${SYSTEMNAME_LOWER} $IMGROOT/etc/
+    #cp /etc/auto.linux $IMGROOT/etc/
+    chmod 600 $IMGROOT/etc/auto.${SYSTEMNAME_LOWER}
+    #chmod 600 $IMGROOT/etc/auto.linux
+}
+
+setup_install_kernel () {
+    case $OS_FAMILY in
+        el[56] ) 
+            $YUM erase kernel-2.6.18-194.3.1.el5
+            $YUM erase kernel-2.6.32-131.0.15.el6.x86_64
+
+            KERNELRPMS="$KERNELRPMDIR/kernel-[23]*rpm"
+
+            if [ "$OS_FAMILY" == "el6" ]; then
+                KERNELRPMS="$KERNELRPMS $KERNELRPMDIR/kernel-firmware*rpm"
+            fi
+
+            $YUM install $KERNELRPMS
+            ;;
+        el7 ) 
+            $YUM install kernel
+            ;;
+        * )
+            echo "Unsupoorted \$OS_RELEASE $OS_RELEASE"
+            ;;
+    esac
+
+    touch $IMGROOT/etc/modprobe.conf
+
+    cat > $IMGROOT/etc/modprobe.d/disable-ipv6.conf << 'EOF'
+#alias net-pf-10 off
+#alias ipv6 off
+options ipv6 disable=1
+EOF
+}

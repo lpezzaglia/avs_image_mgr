@@ -1,0 +1,302 @@
+# $Id: shared 47 2013-08-19 05:15:43Z larry $
+
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+
+umount_fs () {
+    echo
+}
+
+error () {
+    echo -e "\n* Error: ${@}\n"
+    usage_and_fail
+}
+
+
+list_tags () {
+    TAG_LIST="$(svn ls ${FSVS_REPOSITORY}/tags/)"
+
+    if [ -z "$TAG_LIST" ] ; then
+        echo "(no tags found)"
+    else
+        echo "$TAG_LIST"
+    fi
+
+}
+
+
+create_tag () {
+    echo "Creating tag ${TAG_NAME}"
+    svn cp -r ${TAG_REVISION} ${FSVS_REPOSITORY}/trunk/ ${TAG_PATH} -m "${COMMIT_MESSAGE}" 1>/dev/null
+}
+
+
+sleep_5 () {
+    echo
+    echo "Process will begin in 5 seconds..."
+    sleep 5
+    echo "Process starting..."
+}
+
+# Provide the path to the default xCAT genimage utility
+provide_genimage_default () {
+    echo $(which genimage)
+}
+
+# Provide the path to genimage
+provide_genimage () {
+    provide_genimage_${GENIMAGE_PROVIDER}
+}
+
+in_target() {
+    if [ -z "$ADDONROOT" ]; then
+        _ROOT="${IMGROOT}"
+    else
+        _ROOT="${ADDONROOT}"
+    fi
+
+    chroot $_ROOT $@
+}
+
+prep_build_dir () {
+	if [ -z "$ATTEMPT_RESUME" ]; then
+            BASE_DIR_NAME="$(echo $(dirname $BASE)/$(basename $BASE))"
+	    mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
+	fi
+	mkdir -p $IMGROOT
+	mkdir -p ${IMGROOT}/../markers/
+}
+
+prepare_image_directory () {
+    echo
+}
+
+run_step () {
+    _STEP_NAME="$1"
+    shift
+
+    MARKER_DIR=${IMGROOT}/../markers/
+    COMPLETION_MARKER=${MARKER_DIR}/${_STEP_NAME}-complete
+
+    if [ -z "$ATTEMPT_RESUME" ]; then
+        rm -f ${COMPLETION_MARKER}*
+    else
+        echo
+        echo
+        echo "* Attempting to resume previous build *"
+        echo
+        echo
+    fi
+
+    if [ ! -d $MARKER_DIR ]; then
+        mkdir -p $MARKER_DIR
+    fi
+
+    RPM_QUERY="rpm --root $IMGROOT -qa --qf '%{NAME}-%{VERSION}-%{ARCH}\n'"
+    echo "*** BEGIN: $_STEP_NAME"
+    if [ ! -f $COMPLETION_MARKER ]; then
+        if [ -d ${MARKER_DIR} ]; then
+            if [ -d $IMGROOT/var/lib/rpm ]; then
+                $RPM_QUERY > ${COMPLETION_MARKER}.rpms-pre
+            fi
+            du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-pre
+        fi
+        TIME_BEGIN=$(date +%s)
+        $_STEP_NAME
+        [ -z $KERNEL_MODULE_SIGNING_KEY ] || \
+            sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT}
+        TIME_END=$(date +%s)
+	if [ ! -d $MARKER_DIR ]; then
+	    mkdir -p $MARKER_DIR
+	fi
+        echo $((${TIME_END}-${TIME_BEGIN})) > ${COMPLETION_MARKER}.time
+        du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-post
+        if [ -d $IMGROOT/var/lib/rpm ]; then
+            $RPM_QUERY > ${COMPLETION_MARKER}.rpms-post
+        fi
+        touch $COMPLETION_MARKER
+    else
+        echo "*** $_STEP_NAME already finished"
+    fi
+    echo "*** END: $_STEP_NAME"
+}
+
+
+
+pack_image() {
+
+    EXTRACT_DIR=${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}.${TAG_NAME}/
+    if [ -d $EXTRACT_DIR ]; then
+        echo "${EXTRACT_DIR} already exists."
+        echo "Please manually move it aside."
+        false
+    fi
+
+    mkdir ${EXTRACT_DIR}
+    cd ${EXTRACT_DIR}
+
+    echo "Checking out $TAG_PATH"
+    echo $TAG_PATH | $FSVS urls load
+    $FSVS sync-repos >/dev/null
+    $FSVS co $TAG_PATH >/dev/null
+
+    cd ${XCAT_NETBOOT_DIR}
+
+    if [ -d $IMAGE_OUTPUT_NAME ]; then
+        mv $IMAGE_OUTPUT_NAME ${IMAGE_OUTPUT_NAME}.moved.aside.on.$(date +%Y-%m-%d-%H-%M-%S)
+    fi
+
+    ln -s $EXTRACT_DIR $IMAGE_OUTPUT_NAME
+    cd $IMAGE_OUTPUT_NAME/
+
+    # Pack addons
+    if [ -d ./addons ]; then
+        _OLDWD="$(pwd)"
+
+        cd ./addons/
+        for _ADDON in *; do
+            echo -n "Packing addon $_ADDON... "
+            cd $_ADDON && find . | cpio -oHcrc | gzip > ../${_ADDON}.cpio.gz && cd -
+            echo "done."
+        done
+        cd "$_OLDWD"
+    fi
+
+    echo "Running packimage"
+    packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
+    echo "Packimage completed"
+}
+
+pack_sanitycheck () {
+    SIZE_IN_MB=$(du -m $IMGGZ | awk '{print $1}')
+    if [ $SIZE_IN_MB -gt 4096 ]; then
+        echo "*** $IMGGZ is larger than 4096M"
+        return -1
+    fi
+}
+
+do_tag() {
+
+    check_args_tag
+
+    sleep_5
+
+    create_tag
+}
+
+do_list_tags() {
+    check_args_list_tags
+
+    list_tags
+}
+
+do_diff() {
+    check_args_diff
+
+    diff_from_scm
+}
+
+do_pack() {
+    check_args_pack
+
+    sleep_5
+
+    pack_image
+
+    pack_sanitycheck
+}
+
+do_create() {
+    check_args_create
+
+    sleep_5
+
+    prep_build_dir
+
+    image_buildenv_prep
+
+    run_step prepare_image_directory
+
+    run_step generate_image
+
+    mount_fs
+
+    image_specialize
+
+    umount_fs || /bin/true
+
+    print_setuid
+
+    commit_to_scm
+
+    print_stats
+
+    if [ ! -z "$PACK_ON_COMPLETION" ]; then
+        echo "* Launching tag process as requested: "
+        do_tag
+        echo "* Launching pack process as requested: "
+        do_pack
+    fi
+
+    echo "Image $PROFILE created"
+}
+
+do_env() {
+    echo export FSVS_REPOSITORY=${FSVS_REPOSITORY}
+    #print_env
+}
+
+
+img_main() {
+    get_mode "$@"
+    shift
+    
+    parse_args "$@"
+
+    check_args_common
+
+    image_mgr_specialize
+
+    check_args_specialized
+    
+    case $MODE in
+        "create" ) do_create "$@" ;;
+        "tag" ) do_tag "$@" ;;
+        "list_tags" ) do_list_tags "$@" ;;
+        "pack" ) do_pack "$@" ;;
+        "diff" ) do_diff "$@" ;;
+        "env" ) do_env "$@" ;;
+    esac
+}
+
+image_mgr_main() {
+    env | grep '^__IMG_MGR_LOG=' >/dev/null 2>&1 || export __IMG_MGR_LOG=$(mktemp /tmp/image_mgr.XXXXXXXX)
+    
+    #    echo "Logging to $__IMG_MGR_LOG"
+    #    exec 2>&1 | tee $__IMG_MGR_LOG
+    #    exit 0
+    
+    echo "Logging to $__IMG_MGR_LOG" >&2
+    img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
+}
+

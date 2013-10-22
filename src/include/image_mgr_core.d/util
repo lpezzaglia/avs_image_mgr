@@ -1,0 +1,111 @@
+# $Id: util 52 2013-09-10 18:03:54Z larry $
+
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+target_mkdir () {
+    if [ -z "$ADDONROOT" ]; then
+        _ROOT="${IMGROOT}"
+    else
+        _ROOT="${ADDONROOT}"
+    fi
+
+    TARGET_DIR="${_ROOT}/${1}"
+
+    [ -d "${TARGET_DIR}" ] || mkdir -p "${TARGET_DIR}"
+}
+
+_do_yum () {
+    if [ -z "$ADDONROOT" ]; then
+        _ROOT="${IMGROOT}"
+    else
+        _ROOT="${ADDONROOT}"
+    fi
+
+    case $OS_FAMILY in
+        el5 ) 
+            yum --installroot=$_ROOT -y $@
+            ;;
+        el[67] ) 
+            yum  --setopt=history_record=no --releasever=$OS_RELEASE --installroot=$_ROOT -y $@
+            ;;
+        * )
+            echo "Unsupported \$OS_FAMILY $OS_FAMILY"
+            ;;
+    esac
+}
+
+sign_kmods () {
+    _KEY="$1"
+    shift
+    _ROOTDIR="$1"
+    shift
+
+    _MOD_EXTRACT="$(echo /lib/modules/${KERNEL}/build/scripts/mod/mod-extract)"
+    _K_INCLUDE="$(echo /lib/modules/${KERNEL}/build/include/)"
+    _MODSIGN_NOTE="$(echo /lib/modules/${KERNEL}/build/scripts/mod/modsign-note.sh)"
+
+    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
+        if [[ \
+          "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
+          != "  module.sig" ]]; then
+            # The module is not already signed, so sign it.
+
+            # Create temprorary files
+            _KMOD_EXTRACTED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_UNSIGNED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_SIG=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_SIG_C=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_NOTE=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+
+            cp $_KMOD $_KMOD_UNSIGNED
+
+            # Extract the contents of the module
+            $_MOD_EXTRACT $_KMOD $_KMOD_EXTRACTED
+
+            # Create a detached signature using the provided key
+            gpg -o - --batch -u $_KEY -b $_KMOD_EXTRACTED > $_KMOD_SIG 
+
+            # Create an ELF NOTE from the signature
+            sh $_MODSIGN_NOTE $_KMOD_SIG > $_KMOD_SIG_C
+            gcc -x assembler-with-cpp $_KMOD_SIG_C \
+                -I $_K_INCLUDE -DCONFIG_MODULE_SIG=1 \
+                -c -o ${_KMOD_NOTE}
+
+            file $_KMOD
+            file $_KMOD_NOTE
+            file $_KMOD_EXTRACTED
+            # Add the note to the module
+            ld -r -m elf_x86_64 -o ${_KMOD} ${_KMOD_UNSIGNED} ${_KMOD_NOTE}
+
+            # Remote temporary files
+            rm -f $_KMOD_EXTRACTED
+            rm -f $_KMOD_UNSIGNED
+            rm -f $_KMOD_SIG
+            rm -f $_KMOD_SIG_C
+            rm -f $_KMOD_NOTE
+
+            echo "Signed module ${_KMOD}"
+        fi
+    done
+}
+

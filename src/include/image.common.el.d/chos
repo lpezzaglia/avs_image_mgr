@@ -1,0 +1,192 @@
+# $Id: chos 66 2013-10-10 18:31:43Z larry $
+_create_addon_chos () {
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+    #$YUM --disableexcludes=main install glibc.i686
+    # TODO: The CHOS RPM depends on DKMS which we do not need.
+   
+    case $OS_FAMILY in
+        el5 ) 
+            CHOS_RPM=$IMAGE_MGR_BASE/src//chos/chos-0.09-1.x86_64.rpm
+            ;;
+        el6 ) 
+            CHOS_RPM=$IMAGE_MGR_BASE/src/chos/chos-0.09-2larry4.x86_64.rpm
+            ;;
+    esac
+    rpm --nodeps --force --root $ADDONROOT -ivh $CHOS_RPM
+    __addon_chos_install
+    cp $IMAGEFILES/pam_chos.so $ADDONROOT/lib64/security/
+
+    # Modify chos initscript to start later on boot,
+    # not attempt to remount tmpfs filesystems
+    patch -d $ADDONROOT/etc/init.d/ -p 0 -l << 'EOF'
+--- chos.orig   Thu Apr 14 18:05:00 2011
++++ chos        Thu Apr 14 18:08:08 2011
+@@ -1,5 +1,5 @@
+ #!/bin/sh
+-# chkconfig: 2345 26 74
++# chkconfig: 2345 80 76
+ #
+ #CHOS (c) 2004, The Regents of the University of California, through
+ # Lawrence Berkeley National Laboratory (subject to receipt of any
+@@ -103,6 +103,7 @@
+        awk '{
+                if ($0 ~ /noauto/){next;}
+                if ($0 ~ /swap/){next;}
++               if ($0 ~ /tmpfs/){printf "if [ ! -e \"/chos/local%s\" ] ; then mkdir /chos/local%s; fi;mount -t %s -o bind,%s %s /chos/local%s\n",$2,$2,$3,$4,$2,$2;next;}
+                printf "if [ ! -e \"/chos/local%s\" ] ; then mkdir /chos/local%s; fi;mount -t %s -o %s %s /chos/local%s\n",$2,$2,$3,$4,$1,$2
+        }'|sh
+        mount --bind /dev /chos/dev
+EOF
+
+    rmdir $ADDONROOT/chos/sys || /bin/true
+    ln -sf /local/sys $ADDONROOT/chos/sys || /bin/true
+
+}
+
+_create_addon_chos_devel () {
+    #$YUM --disableexcludes=main install glibc.i686
+    # TODO: The CHOS RPM depends on DKMS which we do not need.
+   
+    case $OS_FAMILY in
+        el6 ) 
+            CHOS_RPM=/install/rpms/scientific/6/x86_64/chos-0.11.1/chos-0.11.1-1.x86_64.rpm 
+            ;;
+    esac
+    rpm --nodeps --force --root $ADDONROOT -ivh $CHOS_RPM
+    __addon_chos_install
+
+    cp -f ${IMAGEFILES}/init.d.chos ${ADDONROOT}/etc/init.d/chos
+    cp -f ${IMAGEFILES}/sysconfig.chos ${ADDONROOT}/etc/sysconfig/chos
+    chmod +x ${ADDONROOT}/etc/init.d/chos
+
+    # Some mountpoints
+    for DIR in /chos/export /chos/sys ; do
+        [ -d ${ADDONROOT}/${DIR} ] || mkdir -p ${ADDONROOT}/${DIR}
+    done
+
+
+}
+
+_create_addon_chos_0_12rc1 () {
+    __addon_chos 0.12rc1 "$@"
+}
+
+_create_addon_chos_0_12rc2 () {
+    __addon_chos 0.12rc2 "$@"
+}
+
+__addon_chos () {
+    _CHOS_VERSION=$1
+    shift
+
+    m4 -DCHOS_VERSION=$_CHOS_VERSION $IMAGEFILES/image_mgr.chos.repo.m4 > \
+        $ADDONROOT/etc/yum.repos.d/chos.repo
+
+    $YUM install chos
+
+    __addon_chos_install
+
+    cp -f ${IMAGEFILES}/init.d.chos ${ADDONROOT}/etc/init.d/chos
+    cp -f ${IMAGEFILES}/sysconfig.chos ${ADDONROOT}/etc/sysconfig/chos
+    chmod +x ${ADDONROOT}/etc/init.d/chos
+
+    # Some mountpoints
+    for DIR in /chos/export /chos/sys ; do
+        [ -d ${ADDONROOT}/${DIR} ] || mkdir -p ${ADDONROOT}/${DIR}
+    done
+}
+
+__addon_chos_install () {
+    cat > $ADDONROOT/netboot.install_chos << 'EOF'
+#!/bin/bash
+
+set -e
+set -x
+set -u
+
+for file in /chos/var /chos/opt /chos/sgespool /chos/sys /usr/common /chos/dev/ptmx /chos/dev/pts /chos/dev/shm /chos/dev; do
+    if [ -e $file ] || [ -L $file ]; then
+        rm -f $file
+    fi
+done
+
+for dir in /chos/dev; do
+    if [ -e $dir ]; then
+        rmdir $dir
+    fi
+done
+
+
+EOF
+
+    chmod +x $ADDONROOT/netboot.install_chos
+    chroot $ADDONROOT bash -c "KERNEL=$KERNEL /netboot.install_chos"
+    rm -f $ADDONROOT/netboot.install_chos
+
+    umount $ADDONROOT/chos/local/sys || /bin/true
+    umount $ADDONROOT/chos/local/proc || /bin/true
+    umount $ADDONROOT/chos/local/tmp || /bin/true
+    umount $ADDONROOT/chos/local || /bin/true
+
+    # Build the CHOS module.  This process is based on the stock CHOS
+    # dkms build procedure
+    CHOS_MODULE_DIR=${ADDONROOT}/lib/modules/${KERNEL}/kernel/misc/
+    CHOS_SRC_DIR=${ADDONROOT}/usr/src/chos-*/
+    cd ${CHOS_SRC_DIR}
+    ./find_fork.sh $KERNEL
+    make -C /lib/modules/${KERNEL}/build SUBDIRS=${CHOS_SRC_DIR} modules
+    if [ ! -e ${CHOS_MODULE_DIR} ]; then
+        mkdir ${CHOS_MODULE_DIR}
+    fi
+    cp ${CHOS_SRC_DIR}/chos.ko ${CHOS_MODULE_DIR}/
+    in_target depmod -A ${KERNEL}
+
+
+    in_target chkconfig --del chos
+    in_target chkconfig --add --level 345 chos
+
+    # Create some additional directories in / so that CHOS will
+    # create appropriate /chos/${DIR} -> /local/${DIR} links
+    for DIR in u; do
+        mkdir $ADDONROOT/$DIR
+    done
+
+    # Remove links
+    for LINK in ${ADDONROOT}/chos/* ; do
+        [ ! -L ${LINK} ] || rm -f ${LINK}
+    done
+
+    for LINK in bin etc lib lib64 sbin usr; do 
+        ln -sf /proc/chos/link/${LINK} ${ADDONROOT}/chos/
+    done
+
+    ln -s /global/project ${ADDONROOT}/chos/project
+    ln -s / ${ADDONROOT}/chos/chos
+
+    # Some mountpoints
+    for DIR in /chos/global /chos/global/project /chos/global/common /chos/common /chos/home /chos/local /chos/cgroup /chos/auto /chos/afs /chos/dev ; do
+        [ -d ${ADDONROOT}/${DIR} ] || mkdir -p ${ADDONROOT}/${DIR}
+    done
+}
+

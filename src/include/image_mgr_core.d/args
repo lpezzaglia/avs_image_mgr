@@ -1,0 +1,369 @@
+# $Id: args 59 2013-09-11 22:03:25Z larry $
+usage_and_fail () {
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+    usage
+    fail "Invalid usage"
+}
+
+usage () {
+    echo -e "\nUsage:"
+    echo "`basename $0` create -p profile -o os -a arch -u your_username -m commit_message [ -b ] [ -f ] [ -s fsvs_repository ]"
+    echo "`basename $0` diff -p profile -o os -a arch -t <old tag>:[<new tag>]"
+    echo "`basename $0` diff -p profile -o os -a arch -r <old revision>:[<new revision>]"
+    echo "`basename $0` list-tags -p profile -o os -a arch [ -s fsvs_repository ]"
+    echo "`basename $0` pack -p profile -o os -a arch -t tag [ -s fsvs_repository ]"
+    echo "`basename $0` tag -p profile -o os -a arch -u your_username [ -r revision (default: HEAD) ] [ -m commit_message ] [ -s fsvs_repository ]"
+}
+
+get_mode () {
+    if [ $# -lt 1 ]; then
+        error "No mode provided"
+    fi
+
+    case $1 in
+        "create" ) MODE="create" ;;
+        "tag" ) MODE="tag" ;;
+        "list-tags" ) MODE="list_tags" ;;
+        "list_tags" ) MODE="list_tags" ;;
+        "diff" ) MODE="diff" ;;
+        "pack" ) MODE="pack" ;;
+        "env" ) MODE="env" ;;
+        * ) error "Unknown mode: $1" ;;
+    esac
+
+}
+
+print_env () {
+    parse_args
+    env
+}
+
+parse_args () {
+
+    while getopts "o:a:p:u:m:s:r:t:x:bef" OPTION; do
+        case $OPTION in
+            o ) OS="$OPTARG" ;;
+            a ) ARCH="$OPTARG" ;;
+            p ) PROFILE="$OPTARG" ;;
+            u ) USER_NAME="$OPTARG" ;;
+            m ) COMMIT_MESSAGE="$OPTARG" ;;
+            s ) FSVS_REPOSITORY="$OPTARG" ;;
+            r ) TAG_REVISION="$OPTARG" ;;
+            t ) TAG_NAME="$OPTARG" ;;
+            b ) ATTEMPT_RESUME=1 ;;
+            f ) PACK_ON_COMPLETION=1 ;;
+            x ) MASQUERADE_IMAGE="$OPTARG" ;;
+            e ) print_env ;;
+            * ) usage_and_fail ;;
+        esac
+    done
+}
+
+check_args_specialized () {
+
+    if [ -z "$FSVS_REPOSITORY" ]; then
+        FSVS_REPOSITORY=${SVNPROTO}://${SVNHOST}/${SVN_REPO_DIR}/netboot/${OS}/${ARCH}/${PROFILE}
+    fi
+
+    if [ -z "$TAG_REVISION" ]; then
+        TAG_REVISION="HEAD"
+    fi
+
+}
+
+check_args_common () {
+    for REQUIRED_OPTION in \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -u, -o, -a, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+    OS_MAJOR_VERSION=$(echo $OS | cut -d . -f 1)
+    OS_RELEASE=$(echo $OS | cut -d . -f 2)
+
+    case $OS_MAJOR_VERSION in
+        rhels5 ) 
+            OS_FAMILY=el5
+            ;;
+        rhels6 ) 
+            OS_FAMILY=el6
+            OS_RELEASE=6.${OS_RELEASE}
+            ;;
+        SL6 )
+            OS_FAMILY=el6
+            OS_RELEASE=6.${OS_RELEASE}
+            ;;
+        fedora )
+            case $OS_RELEASE in
+                18 )
+                    OS_FAMILY=el7
+                    OS_RELEASE=18
+                    ;;
+                * ) 
+                    echo -e "\nError: Unsupported Fedora release $OS_RELEASE"
+                    usage_and_fail
+                    ;;
+                esac
+            ;;
+        * ) 
+            echo -e "\nError: Unable to determine kernel for $OS"
+            usage_and_fail
+            ;;
+    esac
+
+}
+
+check_args_list_tags () {
+    for REQUIRED_OPTION in \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -u, -o, -a, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+}
+
+check_args_diff () {
+
+    _TAG_ARG_COUNT=0
+    _DIFF_MODE=""
+
+
+    for REQUIRED_OPTION in \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -u, -o, -a, -r, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+    if [ "${TAG_REVISION}" != "HEAD" ]; then
+        _TAG_ARG_COUNT=$((${_TAG_ARG_COUNT}+1))
+        _DIFF_MODE="by-revision"
+    fi
+
+    if [ "x${TAG_NAME}" != "x" ]; then
+        _TAG_ARG_COUNT=$((${_TAG_ARG_COUNT}+1))
+        _DIFF_MODE="by-tag"
+    fi
+
+    if [ $_TAG_ARG_COUNT -ne 1 ]; then
+        echo -e "\nError: Exactly one of -r or -t are required"
+        usage_and_fail
+    fi
+
+    # Process $TAG_REVISION or $TAG_NAME as follows:
+    # If $TAG_x does not include a colon delimeter, assume it
+    # is the old revision number or tag name and that the new
+    # revision/tag is HEAD/trunk
+    #
+    # If a colon delimiter is present, assume $TAG_x is of the
+    # form ${DIFF_OLD_{REVISION,TAG}}:${DIFF_NEW_${REVISION,TAG}}
+
+    case $_DIFF_MODE in
+        "by-revision" )
+    
+            DIFF_OLD_REVISION=$(echo "${TAG_REVISION}:" | cut -d : -f 1)
+            DIFF_NEW_REVISION=$(echo "${TAG_REVISION}:" | cut -d : -f 2)
+
+            if [ -z ${DIFF_NEW_REVISION} ]; then
+                DIFF_NEW_REVISION="HEAD"
+            fi
+
+            DIFF_OLD_PATH="/trunk"
+            DIFF_NEW_PATH="/trunk"
+            ;;
+        "by-tag" )
+
+            DIFF_OLD_PATH="/tags/"$(echo "${TAG_NAME}:" | cut -d : -f 1)"/"
+            DIFF_NEW_PATH="/tags/"$(echo "${TAG_NAME}:" | cut -d : -f 2)"/"
+
+            if [ "${DIFF_NEW_PATH}" == "/tags//" ]; then
+                DIFF_NEW_PATH="/trunk/"
+            fi
+
+            DIFF_OLD_REVISION="HEAD"
+            DIFF_NEW_REVISION="HEAD"
+
+            ;;
+        * )
+            echo -e "\nError: invalid diff mode $_DIFF_MODE"
+            usage_and_fail
+            ;;
+    esac
+
+    echo
+    echo "# Diffing image for:"
+    echo "# OS: ${OS} (Kernel: $KERNEL)"
+    echo "# Arch: ${ARCH}"
+    echo "# Profile: ${PROFILE}"
+    echo
+    echo "# Old revision: ${DIFF_OLD_REVISION}"
+    echo "# New revision: ${DIFF_NEW_REVISION}"
+    echo
+    echo "# Old path: ${DIFF_OLD_PATH}"
+    echo "# New path: ${DIFF_NEW_PATH}"
+    echo
+
+}
+
+
+check_args_tag () {
+    for REQUIRED_OPTION in \
+        x${USER_NAME} \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -u, -o, -a, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+    if [ -z "$TAG_NAME" ]; then
+        TAG_NAME="${DATESTAMP}-RELEASE-by-${USER_NAME}"
+    fi
+
+    if [ -z "$COMMIT_MESSAGE" ]; then
+        COMMIT_MESSAGE="Tag created at ${DATESTAMP} by ${USER_NAME}"
+    fi
+
+    TAG_PATH="${FSVS_REPOSITORY}/tags/${TAG_NAME}"
+
+    echo
+    echo "Tagging image for:"
+    echo "OS: ${OS}"
+    echo "Arch: ${ARCH}"
+    echo "Profile: ${PROFILE}"
+    echo "Revision: ${TAG_REVISION}"
+    echo
+    echo "${FSVS_REPOSITORY}/trunk/ at revision ${TAG_REVISION} will be tagged as ${TAG_PATH}"
+}
+
+check_args_pack () {
+    for REQUIRED_OPTION in \
+        x${TAG_NAME} \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -t, -o, -a, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+
+    if [ ! -z "${MASQUERADE_IMAGE}" ]; then
+        IMAGE_OUTPUT_NAME="${MASQUERADE_IMAGE}"
+    else
+        IMAGE_OUTPUT_NAME="${PROFILE}"
+    fi
+
+    XCAT_NETBOOT_DIR=/install/netboot/$OS/$ARCH/
+    IMGGZ=${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}/rootimg.gz
+    TAG_PATH="${FSVS_REPOSITORY}/tags/${TAG_NAME}"
+
+
+    echo
+    echo "Packing image for:"
+    echo "OS: ${OS}"
+    echo "Arch: ${ARCH}"
+    echo "Profile: ${PROFILE}"
+    echo "Tag name: ${TAG_NAME}"
+    if [ ! -z "${MASQUERADE_IMAGE}" ]; then
+        echo "Masquerade as: ${IMAGE_OUTPUT_NAME}"
+    fi
+    echo
+    echo "${TAG_PATH} will be packed into ${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}/"
+}
+
+check_args_create () {
+    for REQUIRED_OPTION in \
+        x${USER_NAME} \
+        x${COMMIT_MESSAGE} \
+        x${OS} \
+        x${ARCH} \
+        x${PROFILE} \
+    ; do
+
+        if [ "${REQUIRED_OPTION}" == "x" ]; then
+            echo -e "\nError: -u, -m, -o, -a, and -p are required"
+            usage_and_fail
+        fi
+    done
+
+
+    RUNNING_KERNEL="$(uname -r)"
+
+    if [[ "${RUNNING_KERNEL}" != "${KERNEL}" ]]; then
+        echo "Running kernel (${RUNNING_KERNEL}) does not match target kernel (${KERNEL})"
+    fi
+
+         
+    IMG_BASE_DIR=${BASE}/install/netboot/$OS/$ARCH/$PROFILE/
+    IMGROOT=${IMG_BASE_DIR}/rootimg
+    YUM="_do_yum"
+
+    #STAMP="$PROFILE-$ARCH-$OS"
+    STAMP="$PROFILE"
+
+    echo
+    echo "Creating image for:"
+    echo "OS: ${OS} (Kernel: $KERNEL)"
+    echo "Arch: ${ARCH}"
+    echo "Profile: ${PROFILE}"
+    if [ ! -z "${MASQUERADE_IMAGE}" ]; then
+        echo "Masquerade as: ${MASQUERADE_IMAGE}"
+    fi
+    echo "User name: ${USER_NAME}"
+    echo "Commit message: ${COMMIT_MESSAGE}"
+    echo
+    echo "Output will be committed to: ${FSVS_REPOSITORY}/trunk/"
+    if [ ! -z "${ATTEMPT_RESUME}" ]; then
+        echo "Will attempt to resume a previous build (-b flag passed)"
+    fi
+    if [ ! -z "${PACK_ON_COMPLETION}" ]; then
+        echo "Will automatically tag and pack upon completion (-f flag passed)"
+    fi
+
+}

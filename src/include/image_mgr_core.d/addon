@@ -1,0 +1,99 @@
+# $Id: addon 47 2013-08-19 05:15:43Z larry $
+
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+make_addon() {
+    # Unmount the bind mounts in the image building area
+    umount_fs || /bin/true
+
+    ADDON_NAME="$1"
+    ADDON_BASE_DIR=${IMG_BASE_DIR}/addons
+    ADDONSCRATCH=$(mktemp -d ${BASE}/image.addonscratch.XXXXXXXX)
+    ADDONTMP=$(mktemp -d ${BASE}/image.addontmp.XXXXXXXX)
+    ADDONDEST=${IMG_BASE_DIR}/addons/${ADDON_NAME}
+    ADDONROOT=${ADDONSCRATCH}
+    IMGSCRATCHMANIFEST=${ADDONTMP}/IMG_SCRATCH_MANIFEST
+    IMGMANIFEST=${ADDONTMP}/IMG_MANIFEST
+    ADDONSCRATCHMANIFEST=${ADDONTMP}/IMG_ADDON_MANIFEST
+    ADDONMANIFEST=${ADDONDEST}/etc/addons/MANIFEST_${ADDON_NAME}
+
+    [ -d $ADDONROOT ] || mkdir -p $ADDONROOT
+    [ -d $ADDONDEST ] || mkdir -p $ADDONDEST
+    [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
+
+    # Copy the current image to the addon building area
+    echo "Copying the current image to the addon building area"
+    rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
+
+    mkdir ${ADDONROOT}/export/
+    ln -s /data ${ADDONROOT}/export/data
+    # Modify the copy of the image
+    _create_addon_${1}
+    [ -z $KERNEL_MODULE_SIGNING_KEY ] || \
+        sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${ADDONROOT}
+    rm -f ${ADDONROOT}/export/data
+    rmdir ${ADDONROOT}/export/
+    
+    # Clean up the addon build area
+    rm --one-file-system -rf ${ADDONROOT}/data
+    rm --one-file-system -rf ${ADDONROOT}/var/lib/yum
+    rm --one-file-system -rf ${ADDONROOT}/var/cache/yum
+    rm --one-file-system -rf ${ADDONROOT}/usr/share/doc
+    rm --one-file-system -rf ${ADDONROOT}/usr/man
+
+    # Create list of all files in the addon
+    rpm --root $IMGROOT -qa > $ADDONTMP/img_rpms
+    rpm --root $ADDONROOT -qa > $ADDONTMP/img_plus_addon_rpms
+    diff $ADDONTMP/img_rpms  $ADDONTMP/img_plus_addon_rpms |grep '^>' |cut -c 3- > $ADDONROOT/etc/addons/RPMS_${ADDON_NAME}
+
+    # Create list of all files in the original image
+    cd $IMGROOT && find . | sort > ${IMGSCRATCHMANIFEST}
+    cd $ADDONROOT && find . | sort > ${ADDONSCRATCHMANIFEST}
+
+    echo "Performing a diff -qr $IMGROOT `pwd` to create $ADDONSCRATCHMANIFEST"
+    cd $ADDONROOT && diff -qr $IMGROOT . | sort | sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' >> ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/var.*$/d' ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/etc\/passwd.*$/d' ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/etc\/group.*$/d' ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/etc\/shadow.*$/d' ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/etc\/gshadow.*$/d' ${ADDONSCRATCHMANIFEST}
+    sed -i -e '/^.\/etc\/ld\.so\.cache.*$/d' ${ADDONSCRATCHMANIFEST}
+
+    echo "Performing a diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST to create addon entry list"
+    diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST | grep '^>' | cut -c 5-  > $IMGMANIFEST
+
+    # Copy all files in the addon building are that did not exist in
+    # the original image into the addon destination area.  This will
+    # create an add-on that we can apply to an image as it boots
+    cd $ADDONROOT
+    echo "Creating addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
+    rsync -aSHx --files-from=${IMGMANIFEST} ./ ${ADDONDEST}/
+
+    # Create list of all files in the addon
+    cd $ADDONDEST && find . > ${ADDONMANIFEST}
+
+    ADDONROOT=""
+
+    # Re-mount the bind mounts in the image building area
+    mount_fs || /bin/true
+}

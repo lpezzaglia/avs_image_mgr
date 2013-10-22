@@ -1,0 +1,90 @@
+# $Id: stats 3 2013-05-31 19:39:37Z larry $
+print_setuid() {
+# Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy).  All rights reserved.
+# 
+# If you have questions about your rights to use or distribute this
+# software, please contact Berkeley Lab's Technology Transfer
+# Department at TTD@lbl.gov.
+# 
+# NOTICE.  This software is owned by the U.S. Department of Energy.
+# As such, the U.S. Government has been granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works, and
+# perform publicly and display publicly.  Beginning five (5) years
+# after the date permission to assert copyright is obtained from the
+# U.S. Department of Energy, and subject to any subsequent five (5)
+# year renewals, the U.S. Government is granted for itself and others
+# acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide
+# license in the Software to reproduce, prepare derivative works,
+# distribute copies to the public, perform publicly and display
+# publicly, and to permit others to do so.
+
+    echo "setuid files:"
+    cd $IMGROOT && find . -xdev -perm /u+s -print0 |xargs -0 ls -ld
+
+    echo "setgid files:"
+    cd $IMGROOT && find . -xdev -perm /g+s -print0 |xargs -0 ls -ld
+}
+
+
+print_stats () {
+    cd $IMG_BASE_DIR/markers
+    printf "%30s" "PROCEDURE NAME"
+    printf "%10s" "TIME"
+    printf "%10s" "+/- RPMS"
+    printf "%10s" "+/- SIZE"
+    printf "%10s" "RPMS"
+    printf "%10s" "SIZE"
+    echo
+    
+    TOTAL_TIME=0
+    TOTAL_SIZE=0
+    TOTAL_RPMS=0
+
+    for NAME in `ls -1tr *complete`; do
+        SHORT_NAME=${NAME%%-complete}
+        TIME=$(cat ${NAME}.time)
+
+        if [ ! -f ${NAME}.rpms-pre ]; then
+            RPMS_PRE=0
+        else
+            RPMS_PRE=$(wc -l ${NAME}.rpms-pre | awk '{print $1}')
+        fi
+        if [ ! -f ${NAME}.size-pre ]; then
+            SIZE_PRE=0
+        else
+            SIZE_PRE=$(cat ${NAME}.size-pre | awk '{print $1}')
+        fi
+        if [ -f ${NAME}.rpms-post ] ; then
+            RPMS_POST=$(wc -l ${NAME}.rpms-post | awk '{print $1}')
+            RPMS_CHANGED=$(echo "${RPMS_POST}-0${RPMS_PRE}" | bc)
+        else
+            RPMS_CHANGED=0
+        fi
+        SIZE_POST=$(cat ${NAME}.size-post | awk '{print $1}')
+        SIZE_CHANGED=$(echo "${SIZE_POST}-0${SIZE_PRE}" | bc)
+        TOTAL_TIME="$(echo ${TOTAL_TIME}+${TIME} | bc)"
+        TOTAL_SIZE="$(echo ${TOTAL_SIZE}+${SIZE_CHANGED}| bc)"
+        TOTAL_RPMS="$(echo ${TOTAL_RPMS}+${RPMS_CHANGED} | bc)"
+
+        printf "%30s" "${SHORT_NAME}"
+        printf "%10s" "${TIME}s"
+        printf "%10s" "${RPMS_CHANGED}"
+        printf "%10s" "${SIZE_CHANGED}M"
+        printf "%10s" "${TOTAL_RPMS}"
+        printf "%10s" "${TOTAL_SIZE}M"
+        echo
+
+    done
+
+    printf "%30s" "TOTAL"
+    printf "%10s" "${TOTAL_TIME}s"
+    printf "%10s" "${TOTAL_RPMS}"
+    printf "%10s" "${TOTAL_SIZE}M"
+    printf "%10s" "${TOTAL_RPMS}"
+    printf "%10s" "${TOTAL_SIZE}M"
+    echo
+}
