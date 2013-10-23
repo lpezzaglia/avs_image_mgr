@@ -88,6 +88,10 @@ _create_addon_chos_devel () {
 
 }
 
+_create_addon_chos_0_12_1rc1 () {
+    __addon_chos 0.12.1rc1 "$@"
+}
+
 _create_addon_chos_0_12rc1 () {
     __addon_chos 0.12rc1 "$@"
 }
