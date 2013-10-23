@@ -25,7 +25,7 @@
 _create_addon_ofed() {
     case $OS_FAMILY in
         el5 ) 
-            error "OFED not supported on pdsf-el5"
+            error "Building OFED is not supported on el5"
             ;;
         el6 ) 
             /bin/cp -v $IMAGEFILES/repo.ofed.sl6/* $ADDONROOT/etc/yum.repos.d/
@@ -42,7 +42,7 @@ _create_addon_ofed() {
 _create_addon_mlnx_ofed() {
     case $OS_FAMILY in
         el5 ) 
-            error "OFED not supported on el5"
+            error "Building OFED is not supported on el5"
             ;;
         el6 ) 
             m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo
@@ -64,7 +64,7 @@ _create_addon_mlnx_ofed() {
 _create_addon_mlnx_ofed_20_205() {
     case $OS_FAMILY in
         el5 ) 
-            error "OFED not supported on el5"
+            error "Building OFED is not supported on el5"
             ;;
         el6 ) 
             m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-2.0-2.0.5.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-2.0-2.0.5.repo
