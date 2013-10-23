@@ -1,5 +1,5 @@
 # $Id: chos 66 2013-10-10 18:31:43Z larry $
-_create_addon_chos () {
+
 # Auto-Versioning Systems Image Manager, Copyright (c) 2013, The
 # Regents of the University of California, through Lawrence Berkeley
 # National Laboratory (subject to receipt of any required approvals
@@ -22,6 +22,7 @@ _create_addon_chos () {
 # distribute copies to the public, perform publicly and display
 # publicly, and to permit others to do so.
 
+_create_addon_chos () {
     #$YUM --disableexcludes=main install glibc.i686
     # TODO: The CHOS RPM depends on DKMS which we do not need.
    
