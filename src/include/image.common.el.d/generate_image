@@ -22,6 +22,7 @@
 # distribute copies to the public, perform publicly and display
 # publicly, and to permit others to do so.
 
+
 # Create the most minimal EL image as possible
 # inside the build directory.  Use the genimage
 # utility provided by provide_genimage()
@@ -44,17 +45,51 @@ generate_image () {
             ;;
     esac
 
-    target_mkdir "/${FS_PREFIX}/sbin"
 
     GENIMAGE=$(provide_genimage)
 
     echo "Using genimage from $GENIMAGE"
 
+    # Gather information about this image from xCAT
+    _IMAGEMETADATA="$(lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l)"
+    _PKGLIST="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *pkglist=\(.*\)$/\1/p')"
+    _ROOTIMGDIR="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *rootimgdir=\(.*\)$/\1/p')"
 
+    if [ -z $_PKGLIST ]; then
+        echo "No pkglist found; check osimage settings"
+        return 1
+    elif [ -z $_ROOTIMGDIR ]; then
+        echo "No rootimgdir found; check osimage settings"
+        return 1
+    fi
+
+    # Set up a minimal pkglist and mount it at the xCAT pkglist
+    # location
+    _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
+    print_minimal_pkglist > $_TMP_PKGLIST
+    echo "mount -obind $_TMP_PKGLIST $_PKGLIST"
+    mount -obind $_TMP_PKGLIST $_PKGLIST
+
+    # Mount our build area at the xCAT image location
+    echo "mount -obind $IMG_BASE_DIR $_ROOTIMGDIR"
+    mount -obind $IMG_BASE_DIR $_ROOTIMGDIR
+
+    # Check that the xCAT image location now only contains 4 items: .
+    # .. markers and rootimg
+    if [[ "$(ls -a1 $_ROOTIMGDIR | wc -l)" != "4" ]]; then 
+        echo "$_ROOTIMGDIR is not a fresh build directory"
+        echo "Only markers and rootimg should be present."
+        ls -a1 $_ROOTIMGDIR
+        return 1
+    fi
+
+    target_mkdir "/${FS_PREFIX}/sbin"
+    target_mkdir /dev
 
     # Copy some default configuration files to /etc/ in the build
     # directory
-    mkdir -p ${IMGROOT}/etc/
+    target_mkdir /etc
+    target_mkdir /etc/rpm
 
     for _FILE in passwd group motd; do
         install -o root -g root -m 644 \
@@ -66,7 +101,6 @@ generate_image () {
 
 
     # Create an RPM macros file
-    mkdir -p $IMGROOT/etc/rpm/
     if [[ "$INSTALL_DOCS" == "no" ]]; then
         echo '%_excludedocs 1' >> $IMGROOT/etc/rpm/macros
     fi
@@ -74,16 +108,17 @@ generate_image () {
         echo '%_install_langs '"${INSTALL_LOCALES}" >> $IMGROOT/etc/rpm/macros
     fi
 
-    ln -sf $IMGROOT/etc/rpm/macros ~/.rpmmacros
+    # Mount this macros file at ${HOME}/.rpmmacros
+    echo "mount -obind $IMGROOT/etc/rpm/macros ~/.rpmmacros"
+    mount -obind $IMGROOT/etc/rpm/macros ~/.rpmmacros
 
+    # Install "busybox.anaconda" and "nash", which are needed for the
+    # genimage-created initrd
+    install -o root -g root -m 755 \
+        $IMAGEFILES/busybox.anaconda $IMGROOT/sbin/
+    install -o root -g root -m 755 \
+        $IMAGEFILES/nash $IMGROOT/sbin/
 
-    #ln -s $IMGROOT/sbin/busybox $IMGROOT/sbin/busybox.anaconda
-    cp -v $IMAGEFILES/busybox.anaconda $IMGROOT/sbin/
-    cp -v $IMAGEFILES/nash $IMGROOT/sbin/
-
-    if [ ! -d $IMGROOT/dev ]; then
-        mkdir $IMGROOT/dev
-    fi
 
     NET_MODULES="bnx2,tg3,forcedeth,igb,e1000,e1000e,virtio,virtio_pci,virtio_net"
     STORAGE_MODULES="sd_mod,scsi_transport_sas,mptscsih,mptsas,ata_piix,sata_nv,sata_mv,virtio_blk,auth_rpcgss"
@@ -101,7 +136,9 @@ generate_image () {
                 fi
             done
 
-            cat > $IMGROOT/sbin/hotplug << 'EOF'
+            # Create a hotplug script to handle firmware load requests
+            _TMP_HOTPLUG=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
+            cat > $_TMP_HOTPLUG << 'EOF'
 #!/sbin/busybox.anaconda sh
 echo "$0 active:"
 /sbin/busybox.anaconda sh
@@ -111,7 +148,8 @@ cat /lib/firmware/$FIRMWARE > /sys/$DEVPATH/data
 echo 0 > /sys/$DEVPATH/loading
 echo "$0 exiting"
 EOF
-            chmod +x $IMGROOT/sbin/hotplug
+            install -o root -g root -m 755 \
+                $_TMP_HOTPLUG $IMGROOT/sbin/hotplug
             ;;
         * )
             echo "Unsupported \$OS_FAMILY $OS_FAMILY"
@@ -119,6 +157,7 @@ EOF
             ;;
     esac
 
+    # Launch genimage with the following arguments:
     # -i: Interfaces to activate
     # -n: Modules to try loading before bringing up the network
     # -o: OS version
@@ -135,6 +174,9 @@ EOF
     -p $PROFILE \
     0>/dev/null
 
+    # Unmount our pkglist and build area from the xCAT locations
+    umount $_ROOTIMGDIR
+    umount $_PKGLIST
 
     case $OS_FAMILY in
         el5 ) 
@@ -161,7 +203,7 @@ EOF
     $YUM remove rpm
 
 
-    # Remove unnecessary locales
+    # Remove unnecessary locales, if requested
     if [[ "$INSTALL_LOCALES" != "" ]]; then
         echo "Removing locales not matching $INSTALL_LOCALES"
         # %_install_langs does not seem to affect what is in the localedef
@@ -189,6 +231,47 @@ EOF
 
     fi
 
+    # Remove any stale OFED modules from the image
     rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
 
 }
+
+# Print the most minimal pkglist possible for this image type
+print_minimal_pkglist () {
+# See http://lists.centos.org/pipermail/centos/2009-April/075627.html 
+cat << 'EOF'
+
+-audit-libs-python
+-checkpolicy
+-dhcpv6-client
+-ecryptfs-utils
+-ed
+-file
+-gnu-efi
+-gpm
+-hdparm
+-kbd
+-libhugetlbfs
+-libselinux-python
+-libsemanage
+-nspr
+-nss
+-perl
+-policycoreutils
+-prelink
+-selinux-policy
+-selinux-policy-targeted
+-setools
+-setserial
+-sysfsutils
+-tcl
+-udftools
+-vim-enhanced
+-kernel 
+-openafs
+busybox.x86_64
+initscripts.x86_64
+sl-release
+EOF
+}
+
