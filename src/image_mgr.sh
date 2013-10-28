@@ -39,16 +39,7 @@ set -e
 set -u
 set -o posix
 
-
-
-
-# The path to the image_mgr.sh script
-SCRIPT_DIR=$(dirname $0)
-cd $SCRIPT_DIR
-IMAGE_MGR=$(pwd)/$(basename $0)
 . include/image_mgr.pre
-
-
 
 trap generic_fail 1 2 3 15 ERR
 
@@ -133,8 +124,14 @@ YUM=""
 
 
 
+# The path to the image_mgr.sh script
+SCRIPT_DIR=$(dirname $0)
+cd $SCRIPT_DIR
+IMAGE_MGR=$(pwd)/$(basename $0)
 
-
+# Ensure we are running in an unshared mount namespace
+env | grep '^__UNSHARED=1' >/dev/null 2>&1 || \
+    exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
 
 
 # Import all functions
