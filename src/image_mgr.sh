@@ -45,6 +45,7 @@ trap generic_fail 1 2 3 15 ERR
 
 
 
+ADDITIONAL_PACKAGES_LIST_PROVIDER="default"
 ADDONROOT=""
 ARCH=""
 ATTEMPT_RESUME=""

@@ -68,6 +68,7 @@ provide_genimage () {
     provide_genimage_${GENIMAGE_PROVIDER}
 }
 
+
 in_target() {
     if [ -z "$ADDONROOT" ]; then
         _ROOT="${IMGROOT}"

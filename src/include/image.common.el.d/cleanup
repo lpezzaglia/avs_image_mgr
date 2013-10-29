@@ -73,15 +73,35 @@ setup_remove_cracklib () {
 }
 
 cleanup () {
+
+    case $OS_FAMILY in
+        el5 ) 
+            ;;
+        el6 ) 
+            $YUM erase cronie-anacron
+            in_target chkconfig nslcd off
+            in_target chkconfig portreserve on
+            ;;
+    esac
+
+    # Link some additional busybox utilities
+    ln -s /sbin/busybox $IMGROOT/bin/which
+    if [ ! -e $IMGROOT/bin/vi ]; then
+        ln -s /sbin/busybox $IMGROOT/bin/vi
+    fi
+    ln -s /sbin/busybox $IMGROOT/bin/diff
+    ln -s /sbin/busybox $IMGROOT/bin/patch
+
+
     #echo 'CLOCKFLAGS=--debug' > $IMGROOT/etc/sysconfig/clock
-    $YUM clean all
+    $YUM --enablerepo='*' clean all
 
     # "yum clean all" does not seem to really clean up
     # /var/cache/yum/, so we clean it up by hand
     rm -rf $IMGROOT/var/cache/yum
     rm -rf $IMGROOT/var/log/yum.log
 
-    rmdir $IMGROOT/misc || /bin/true
+    [ ! -d $IMGROOT/misc ] || rmdir $IMGROOT/misc
 
     case $OS_FAMILY in
         el5 ) 
@@ -124,15 +144,20 @@ cleanup () {
     rm -rf $IMGROOT/xcatpost
 
 
+    in_target chkconfig auditd off
+    in_target chkconfig cgconfig off
+    in_target chkconfig cpuspeed on
+    in_target chkconfig iptables off
+    in_target chkconfig ip6tables off ||/bin/true
+    in_target chkconfig nscd on
+    in_target chkconfig --add smartd
     in_target chkconfig rpcidmapd off || /bin/true
     in_target chkconfig rpcgssd off || /bin/true
 
     case $OS_FAMILY in
         el5 ) 
-	    in_target chkconfig lvm2-monitor off || /bin/true
-	    in_target chkconfig lvm2-monitor --level 1 off || /bin/true
-            ;;
-        el6 ) 
+            in_target chkconfig lvm2-monitor off || /bin/true
+            in_target chkconfig lvm2-monitor --level 1 off || /bin/true
             ;;
     esac
 
@@ -152,6 +177,7 @@ cleanup () {
     if [ -e $IMGROOT/var/log ]; then
         rm -rf $IMGROOT/var/log
     fi
+
     mkdir $IMGROOT/var/log
 
     ERRS="$(in_target depmod -ae ${KERNEL} -F /boot/System.map-${KERNEL} 2>&1)"

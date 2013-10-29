@@ -22,121 +22,86 @@
 # distribute copies to the public, perform publicly and display
 # publicly, and to permit others to do so.
 
-# Install many miscellaneous useful packages
-# TODO: This function needs to be modularized
-# and cleaned up
-setup_additional_packages () {
-    $YUM install audit
-    in_target chkconfig auditd off
+additional_packages_default() {
+cat << EOF | tr -d ' ' | sed -e '/^\(#\|$\)/d' | tr '\n' ' '
+    # Disable colorls by default.  colorls will stat every file in a
+    # directory being ls'd in order to colorize them, which can
+    # introduce difficulty and confusion when investigating
+    # filesystem problems
+    SL_no_colorls
 
-    #$YUM install diff vim-enhanced tcsh libXmu iptables net-snmp
-    #$YUM install diff vim-enhanced tcsh iptables net-snmp
-    #$YUM install diff tcsh iptables net-snmp sendmail
-    $YUM install tcpdump iperf telnet nc traceroute
-
-    $YUM install lvm2
-
-    $YUM install psacct
-    $YUM install numactl
-    $YUM install libcgroup
-    in_target chkconfig cgconfig off
-
-    # Disable colorls by default
-    $YUM install SL_no_colorls
-
-    # Workload generator
-    $YUM install stress
+    audit
+    crontabs
 
     # CPU frequency settings
-    $YUM install cpufrequtils i7z cpuspeed
-    cp $IMAGEFILES/sysconfig.cpuspeed $IMGROOT/etc/sysconfig/cpuspeed
-    in_target chkconfig cpuspeed on
+    cpufrequtils
+    cpuspeed
+    i7z
+
+    dhclient
+    iperf
+    iptables
+    libcgroup
+    lsof
+    lvm2
+    man
+    nc
+    numactl
+    psacct
+
+    # Workload generator
+    stress
+
+    tcpdump
+    tcsh
+    telnet
+    traceroute
 
     # Useful for debugging and diagnostics
-    $YUM install dmidecode pciutils strace mcelog
-
-    # Provide the ability to read manpages, but disable the cronjob
-    # that builds the whatis database
-    $YUM install man
-    rm -f $IMGROOT/etc/cron.daily/makewhatis.cron
+    dmidecode
+    pciutils
+    strace
+    mcelog
 
     # rsync is required for xCAT syncfiles
-    $YUM install rsync
+    rsync
 
     # Install attr to get and manipulate extended attributes
     # (Required for XRootD)
-    $YUM install attr
-
-    $YUM install iptables
-    in_target chkconfig iptables off
-    in_target chkconfig ip6tables off ||/bin/true
-
-    $YUM install lsof
-    case $OS_FAMILY in
-        el5 ) 
-	    $YUM install smartmontools
-	    $YUM install nss_ldap
-            in_target chkconfig nscd on
-            ;;
-        el6 ) 
-	    $YUM install smartmontools
-	    $YUM install unscd nss-pam-ldapd
-            cp ${IMAGEFILES}/unscd.conf ${IMGROOT}/etc/unscd.conf
-	    $YUM install portreserve
-            echo 790/tcp > $IMGROOT/etc/portreserve/gpfs            
-            echo 790/udp >> $IMGROOT/etc/portreserve/gpfs            
-            echo 791/tcp >> $IMGROOT/etc/portreserve/gpfs            
-            echo 791/udp >> $IMGROOT/etc/portreserve/gpfs            
-            in_target chkconfig nscd on
-            in_target chkconfig nslcd off
-            in_target chkconfig portreserve on
-            ;;
-    esac
-
-    in_target chkconfig --add smartd
-
-    case $OS_FAMILY in
-        el5 ) 
-	    $YUM install crontabs
-            ;;
-        el6 ) 
-	    $YUM install crontabs cronie-noanacron
-	    $YUM erase cronie-anacron
-            ;;
-    esac
-
-    rm -f $IMGROOT/etc/cron.daily/logrotate
-
-    # Install a restrictive set of default IPTables rules
-    cp $IMAGEFILES/etc/iptables $IMGROOT/etc/sysconfig/iptables
-
-    $YUM install dhclient
-    $YUM install tcsh
-
-    case $OS_FAMILY in
-        el5 ) 
-	    $YUM install sysklogd
-            ;;
-        el6 ) 
-	    $YUM install rsyslog
-            ;;
-    esac
-
+    attr
 
     # wget is needed by /opt/xcat/xcatdsklspost to download postscripts
     # (Busybox wget does not seem to have the required features.)
-    $YUM install wget
+    wget
+EOF
 
-    # Link some additional busybox utilities
-    ln -s /sbin/busybox $IMGROOT/bin/which
-    if [ ! -e $IMGROOT/bin/vi ]; then
-        ln -s /sbin/busybox $IMGROOT/bin/vi
-    fi
-    ln -s /sbin/busybox $IMGROOT/bin/diff
-    ln -s /sbin/busybox $IMGROOT/bin/patch
- 
-    [ -e $IMGROOT/usr/sbin/usernetctl ] && chmod u-s $IMGROOT/usr/sbin/usernetctl
+    (
+    case $OS_FAMILY in
+        el5 ) 
+            echo nss_ldap
+            echo smartmontools
+            echo sysklogd
+            ;;
+        el6 ) 
+            echo cronie-noanacron
+            echo nss-pam-ldapd
+            echo portreserve
+            echo rsyslog
+            echo smartmontools
+            
+            # Minimal replacement for glibc nscd
+            echo unscd
+            ;;
+    esac
+    ) | tr -d ' ' | sed -e '/^\(#\|$\)/d' | tr '\n' ' '
+}
 
+# Provide the path to genimage
+provide_additional_package_list () {
+    additional_packages_${ADDITIONAL_PACKAGES_LIST_PROVIDER}
+}
 
+setup_additional_packages () {
+    $YUM install $(provide_additional_package_list)
 }
 
