@@ -56,10 +56,10 @@ generate_image () {
     _ROOTIMGDIR="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *rootimgdir=\(.*\)$/\1/p')"
 
     if [ -z $_PKGLIST ]; then
-        echo "No pkglist found; check osimage settings"
+        echo "No pkglist found; check osimage settings (lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l) and the osimage and linuximage tables"
         return 1
     elif [ -z $_ROOTIMGDIR ]; then
-        echo "No rootimgdir found; check osimage settings"
+        echo "No rootimgdir found; check osimage settings (lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l) and the osimage and linuximage tables"
         return 1
     fi
 
@@ -169,7 +169,7 @@ EOF
     -i eth0 \
     -n ${NET_MODULES},${FS_MODULES},${STORAGE_MODULES} \
     -a $ARCH \
-    -k $KERNEL \
+    -k $(kernel_variant) \
     -o $OS \
     -p $PROFILE \
     0>/dev/null
@@ -272,6 +272,7 @@ cat << 'EOF'
 busybox.x86_64
 initscripts.x86_64
 sl-release
+util-linux-ng
 EOF
 }
 

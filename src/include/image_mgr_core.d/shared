@@ -124,8 +124,13 @@ run_step () {
         fi
         TIME_BEGIN=$(date +%s)
         $_STEP_NAME
-        [ -z $KERNEL_MODULE_SIGNING_KEY ] || \
+
+        if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
+            unsign_kmods ${IMGROOT}
+        else
             sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT}
+        fi
+
         TIME_END=$(date +%s)
 	if [ ! -d $MARKER_DIR ]; then
 	    mkdir -p $MARKER_DIR

@@ -43,10 +43,10 @@ _do_yum () {
 
     case $OS_FAMILY in
         el5 ) 
-            yum --installroot=$_ROOT -y $@
+            yum --installroot=$_ROOT -y "$YUM_EXTRA_ARGS" "$@"
             ;;
         el[67] ) 
-            yum  --setopt=history_record=no --releasever=$OS_RELEASE --installroot=$_ROOT -y $@
+            yum  --setopt=history_record=no --releasever=$OS_RELEASE --installroot=$_ROOT -y "$YUM_EXTRA_ARGS" "$@"
             ;;
         * )
             echo "Unsupported \$OS_FAMILY $OS_FAMILY"
@@ -54,15 +54,36 @@ _do_yum () {
     esac
 }
 
+
+# Remove all kernel module signatures in ${_ROOTDIR}/lib/modules/
+unsign_kmods () {
+    _ROOTDIR="$1"
+    shift
+    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
+        if [[ \
+          "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
+          != "  module.sig" ]]; then
+            # The module is not signed
+            echo "NOT Unsigning ${_KMOD}"
+        else
+            # The module is signed.  Remove the signature.
+            echo "Unsigning ${_KMOD}"
+            objcopy -R .note.module.sig "${_KMOD}"
+        fi
+    done
+}
+
+# Sign all kernel module signatures in ${_ROOTDIR} with ${_KEY}
 sign_kmods () {
+
     _KEY="$1"
     shift
     _ROOTDIR="$1"
     shift
 
-    _MOD_EXTRACT="$(echo /lib/modules/${KERNEL}/build/scripts/mod/mod-extract)"
-    _K_INCLUDE="$(echo /lib/modules/${KERNEL}/build/include/)"
-    _MODSIGN_NOTE="$(echo /lib/modules/${KERNEL}/build/scripts/mod/modsign-note.sh)"
+    _MOD_EXTRACT="$(echo /lib/modules/$(kernel_variant)/build/scripts/mod/mod-extract)"
+    _K_INCLUDE="$(echo /lib/modules/$(kernel_variant)/build/include/)"
+    _MODSIGN_NOTE="$(echo /lib/modules/$(kernel_variant)/build/scripts/mod/modsign-note.sh)"
 
     for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
         if [[ \
@@ -91,9 +112,6 @@ sign_kmods () {
                 -I $_K_INCLUDE -DCONFIG_MODULE_SIG=1 \
                 -c -o ${_KMOD_NOTE}
 
-            file $_KMOD
-            file $_KMOD_NOTE
-            file $_KMOD_EXTRACTED
             # Add the note to the module
             ld -r -m elf_x86_64 -o ${_KMOD} ${_KMOD_UNSIGNED} ${_KMOD_NOTE}
 
@@ -104,8 +122,18 @@ sign_kmods () {
             rm -f $_KMOD_SIG_C
             rm -f $_KMOD_NOTE
 
-            echo "Signed module ${_KMOD}"
         fi
     done
+
+    echo "Signed kernel modules"
+}
+
+# Return the name of the current kernel variant
+kernel_variant() {
+    if [ ! -z "$KERNEL_SUFFIX" ]; then
+        echo "${KERNEL}.${KERNEL_SUFFIX}"
+    else
+        echo "${KERNEL}"
+    fi
 }
 

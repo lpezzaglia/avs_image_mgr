@@ -62,24 +62,36 @@ _create_addon_mlnx_ofed() {
 }
 
 _create_addon_mlnx_ofed_20_205() {
-    case $OS_FAMILY in
-        el5 ) 
-            error "OFED not supported on el5"
-            ;;
-        el6 ) 
-            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-2.0-2.0.5.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-2.0-2.0.5.repo
-            OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
-            OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
-            $YUM install $OFED_RPMS
-            cp -v $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
-            in_target chkconfig openibd off
-            sed -i -e '/^.*lro.*$/d' ${ADDONROOT}/etc/modprobe.d/ib_ipoib.conf 
-            ;;
-    esac
+    __add_mlnx_ofed 2.0-2.0.5 "$@"
 
     # Install customized version of mlnx_affinity
     install -o root -g root -m 700 $IMAGEFILES/usr/sbin/mlnx_affinity \
         $ADDONROOT/usr/sbin/mlnx_affinity
+}
+
+_create_addon_mlnx_ofed_20_300() {
+   __add_mlnx_ofed 2.0-3.0.0 "$@"
+}
+
+__add_mlnx_ofed() {
+
+    MOFED_VERSION="$1"
+    shift
+
+    case $OS_FAMILY in
+        el5 ) 
+            error "MOFED not supported on el5"
+            ;;
+        el6 ) 
+            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-${MOFED_VERSION}.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-${MOFED_VERSION}.repo
+            OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
+            OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
+            $YUM install $OFED_RPMS
+            install -o root -g root -m 644 $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
+            sed -i -e '/^.*lro.*$/d' ${ADDONROOT}/etc/modprobe.d/ib_ipoib.conf 
+            ;;
+    esac
+
 
     mv $ADDONROOT/usr/bin/ibdiagnet $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
     chmod 600 $ADDONROOT/usr/bin/ibdiagnet.cfdisabled
