@@ -82,7 +82,7 @@ EOF
             echo smartmontools
             echo sysklogd
             ;;
-        el6 ) 
+        el[67] ) 
             echo cronie-noanacron
             echo nss-pam-ldapd
             echo portreserve

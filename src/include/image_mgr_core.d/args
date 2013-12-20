@@ -116,6 +116,10 @@ check_args_common () {
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}
             ;;
+        rhels7b ) 
+            OS_FAMILY=el7
+            OS_RELEASE=7.0
+            ;;
         SL6 )
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}

@@ -184,6 +184,9 @@ EOF
             ;;
         el6 ) 
             ;;
+        el7)
+            sed -ie 's/^\(enabled=\)0$/\11/g' $IMGROOT/etc/yum.repos.d/rhel-beta.repo 
+            ;;
     esac
 
 
@@ -191,16 +194,21 @@ EOF
     # file.  See
     # http://lists.centos.org/pipermail/centos/2009-April/075627.html
     #
-    # Removing util-linux-ng with yum and %_excludedocs set appears
-    # not to work; use the "rpm" utility instead until a solution can
-    # be found
-    $YUM install rpm
-    in_target rpm -e --nodeps util-linux-ng
-    $YUM --releasever=${OS_RELEASE} remove slang usermode wireless-tools
-    $YUM remove cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb
-    $YUM remove libvolume_id libxml2-python pciutils
-    $YUM remove cyrus-sasl-lib logrotate
-    $YUM remove rpm
+    case $OS_FAMILY in
+        el[56] ) 
+            # Removing util-linux-ng with yum and %_excludedocs set appears
+            # not to work; use the "rpm" utility instead until a solution can
+            # be found
+            $YUM install rpm
+            in_target rpm -e --nodeps util-linux-ng
+            $YUM remove rpm
+            ;;
+    esac
+
+    $YUM remove slang usermode wireless-tools \
+        cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb \
+        libvolume_id libxml2-python pciutils \
+        cyrus-sasl-lib logrotate
 
 
     # Remove unnecessary locales, if requested
@@ -238,6 +246,7 @@ EOF
 
 # Print the most minimal pkglist possible for this image type
 print_minimal_pkglist () {
+
 # See http://lists.centos.org/pipermail/centos/2009-April/075627.html 
 cat << 'EOF'
 
@@ -274,5 +283,16 @@ initscripts.x86_64
 sl-release
 util-linux-ng
 EOF
+
+    case $OS_FAMILY in
+        el[56] ) 
+            ;;
+        el[7] ) 
+            cat << 'EOF'
+kernel
+redhat-release
+EOF
+            ;;
+    esac
 }
 
