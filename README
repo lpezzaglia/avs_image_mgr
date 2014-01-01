@@ -1,0 +1,8 @@
+The Auto-Versioning Systems Image Manager is a set of scripts which
+wrap around xCAT and FSVS to facilitate disciplined management of
+netboot images for computational systems.
+
+The interface for avs_image_mgr, and the primary use case, were
+presented in detail at the 2013 meeting of the Cray User Group:
+   * Paper:  http://cug.org/proceedings/cug2013_proceedings/includes/files/pap184.pdf
+   * Slides: http://cug.org/proceedings/cug2013_proceedings/includes/files/pap184-file2.pdf
