@@ -34,6 +34,27 @@ target_mkdir () {
     [ -d "${TARGET_DIR}" ] || mkdir -p "${TARGET_DIR}"
 }
 
+_do_install () {
+    local OPTIND=1
+    while getopts "o:g:m" _OPTION; do
+        case $_OPTION in
+            o ) _OWNER="$OPTARG" ;;
+            g ) _GROUP="$OPTARG" ;;
+            m ) _MODE="$OPTARG" ;;
+        esac
+    done
+
+    shift $((OPTIND - 1))
+
+    _SRC="$1"
+    shift
+
+    _DEST="$1"
+    shift
+
+    install -o "${_OWNER}" -g "${_GROUP}" -m "${_MODE}" "${_SRC}" "${_DEST}"
+}
+
 _do_yum () {
     if [ -z "$ADDONROOT" ]; then
         _ROOT="${IMGROOT}"
@@ -64,10 +85,8 @@ unsign_kmods () {
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
             # The module is not signed
-            echo "NOT Unsigning ${_KMOD}"
         else
             # The module is signed.  Remove the signature.
-            echo "Unsigning ${_KMOD}"
             objcopy -R .note.module.sig "${_KMOD}"
         fi
     done
