@@ -3,6 +3,8 @@ avs_image_mgr 0.12.0                 2014-01-29
  * Build the image in a separate mount namespace
  * Use built-in pkglist to avoid relying on the correctness of a
    manually installed pkglist
+ * Add support for kernel variants
+ * Add support for EL7beta
  * Overall code cleanups
 
 avs_image_mgr 0.11.0                 2013-10-22
