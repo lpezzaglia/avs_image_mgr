@@ -81,11 +81,9 @@ unsign_kmods () {
     _ROOTDIR="$1"
     shift
     for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
-        if [[ \
+        if ! [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
-            # The module is not signed
-        else
             # The module is signed.  Remove the signature.
             objcopy -R .note.module.sig "${_KMOD}"
         fi

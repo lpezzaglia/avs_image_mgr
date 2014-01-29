@@ -151,6 +151,18 @@ run_step () {
 
 pack_image() {
 
+    if [[ "$(egrep -v ':(\*|!!):' /etc/shadow | wc -l)" != 0 ]]; then
+        echo "Password hashes were found in /etc/shadow"
+        echo "Packimage may copy these hashes into the image."
+        echo "This is probably not what you want."
+        echo ""
+        echo "You may want to remove these hashes."
+        echo "Note that /etc/shadow is read by the xcatd daemon,"
+        echo "so any changes must be made within the context visible"
+        echo "to xcatd."
+        false
+    fi
+
     EXTRACT_DIR=${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}.${TAG_NAME}/
     if [ -d $EXTRACT_DIR ]; then
         echo "${EXTRACT_DIR} already exists."
@@ -191,6 +203,10 @@ pack_image() {
     echo "Running packimage"
     packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
     echo "Packimage completed"
+}
+
+xcat_image_metadata() {
+    lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l
 }
 
 pack_sanitycheck () {

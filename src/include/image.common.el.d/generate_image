@@ -51,7 +51,7 @@ generate_image () {
     echo "Using genimage from $GENIMAGE"
 
     # Gather information about this image from xCAT
-    _IMAGEMETADATA="$(lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l)"
+    _IMAGEMETADATA="$(xcat_image_metadata)"
     _PKGLIST="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *pkglist=\(.*\)$/\1/p')"
     _ROOTIMGDIR="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *rootimgdir=\(.*\)$/\1/p')"
 
@@ -68,10 +68,12 @@ generate_image () {
     _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
     print_minimal_pkglist > $_TMP_PKGLIST
     echo "mount -obind $_TMP_PKGLIST $_PKGLIST"
+    ls -ld $_TMP_PKGLIST $_PKGLIST
     mount -obind $_TMP_PKGLIST $_PKGLIST
 
     # Mount our build area at the xCAT image location
     echo "mount -obind $IMG_BASE_DIR $_ROOTIMGDIR"
+    ls -ld $IMG_BASE_DIR $_ROOTIMGDIR
     mount -obind $IMG_BASE_DIR $_ROOTIMGDIR
 
     # Check that the xCAT image location now only contains 4 items: .
@@ -241,6 +243,10 @@ EOF
 
     # Remove any stale OFED modules from the image
     rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
+
+    # Update the shadow file
+    install -o root -g root -m 400 \
+        ${IMAGEFILES}/etc/shadow.netboot ${IMGROOT}/etc/shadow
 
 }
 

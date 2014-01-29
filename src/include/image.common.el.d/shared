@@ -170,9 +170,9 @@ setup_ganglia () {
 
 setup_authorized_keys () {
     # Setup authorized_keys
-    mkdir $IMGROOT/root/.ssh || /bin/true
-    cp /root/.ssh/authorized_keys $IMGROOT/root/.ssh/
-    chmod 400 $IMGROOT/root/.ssh/authorized_keys
+    target_mkdir /root/.ssh
+    chmod 700 $IMGROOT/root/.ssh/
+    install -o root -g root -m 400 $IMAGEFILES/authorized_keys $IMGROOT/root/.ssh/
 }
 
 setup_ssh_host_keys () {
