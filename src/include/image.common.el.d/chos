@@ -101,6 +101,10 @@ _create_addon_chos_0_12rc2 () {
     __addon_chos 0.12rc2 "$@"
 }
 
+_create_addon_chos_0_13_0rc1 () {
+    __addon_chos 0.13.0rc1 "$@"
+}
+
 __addon_chos () {
     _CHOS_VERSION=$1
     shift

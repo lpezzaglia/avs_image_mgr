@@ -116,6 +116,10 @@ check_args_common () {
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}
             ;;
+        rhels7b ) 
+            OS_FAMILY=el7
+            OS_RELEASE=7.0
+            ;;
         SL6 )
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}
@@ -343,6 +347,7 @@ check_args_create () {
     IMG_BASE_DIR=${BASE}/install/netboot/$OS/$ARCH/$PROFILE/
     IMGROOT=${IMG_BASE_DIR}/rootimg
     YUM="_do_yum"
+    INSTALL="_do_install"
 
     #STAMP="$PROFILE-$ARCH-$OS"
     STAMP="$PROFILE"

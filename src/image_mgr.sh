@@ -75,6 +75,7 @@ IMG_BASE_DIR=""
 IMGROOT=""
 KEEP_LOCALE=""
 KERNEL_NOARCH=""
+KERNEL_SUFFIX=""
 
 # Sign kernel modules.  This is currently only supported on EL6.
 # On EL6, this will sign any out-of-tree kernel modules with the
@@ -121,6 +122,7 @@ TAG_REVISION=""
 USER_NAME=""
 XCAT_NETBOOT_DIR=""
 YUM=""
+YUM_EXTRA_ARGS=""
 
 
 

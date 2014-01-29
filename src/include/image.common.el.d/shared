@@ -31,8 +31,7 @@ build_prep () {
     cp /etc/localtime $IMGROOT/etc/
     cp -p /etc/resolv.conf $IMGROOT/etc/
 
-    ### NETWORK ###
-    # Remove the 169.254.0.0 address that gets created. TMD 11 Feb 2010
+    # Disable zeroconf
     echo "NOZEROCONF=yes" >> $IMGROOT/etc/sysconfig/network
 
     # Remove /home directory so Cfengine can put a link in its place
@@ -171,9 +170,9 @@ setup_ganglia () {
 
 setup_authorized_keys () {
     # Setup authorized_keys
-    mkdir $IMGROOT/root/.ssh || /bin/true
-    cp /root/.ssh/authorized_keys $IMGROOT/root/.ssh/
-    chmod 400 $IMGROOT/root/.ssh/authorized_keys
+    target_mkdir /root/.ssh
+    chmod 700 $IMGROOT/root/.ssh/
+    install -o root -g root -m 400 $IMAGEFILES/authorized_keys $IMGROOT/root/.ssh/
 }
 
 setup_ssh_host_keys () {
@@ -201,7 +200,11 @@ setup_install_kernel () {
             $YUM erase kernel-2.6.18-194.3.1.el5
             $YUM erase kernel-2.6.32-131.0.15.el6.x86_64
 
-            KERNELRPMS="$KERNELRPMDIR/kernel-[23]*rpm"
+            if [[ ! -z "${KERNEL_SUFFIX}" ]]; then
+                KERNELRPMS="$KERNELRPMDIR/kernel-${KERNEL_SUFFIX}-[23]*rpm"
+            else
+                KERNELRPMS="$KERNELRPMDIR/kernel-[23]*rpm"
+            fi
 
             if [ "$OS_FAMILY" == "el6" ]; then
                 KERNELRPMS="$KERNELRPMS $KERNELRPMDIR/kernel-firmware*rpm"

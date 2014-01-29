@@ -124,8 +124,13 @@ run_step () {
         fi
         TIME_BEGIN=$(date +%s)
         $_STEP_NAME
-        [ -z $KERNEL_MODULE_SIGNING_KEY ] || \
+
+        if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
+            unsign_kmods ${IMGROOT}
+        else
             sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT}
+        fi
+
         TIME_END=$(date +%s)
 	if [ ! -d $MARKER_DIR ]; then
 	    mkdir -p $MARKER_DIR
@@ -145,6 +150,18 @@ run_step () {
 
 
 pack_image() {
+
+    if [[ "$(egrep -v ':(\*|!!):' /etc/shadow | wc -l)" != 0 ]]; then
+        echo "Password hashes were found in /etc/shadow"
+        echo "Packimage may copy these hashes into the image."
+        echo "This is probably not what you want."
+        echo ""
+        echo "You may want to remove these hashes."
+        echo "Note that /etc/shadow is read by the xcatd daemon,"
+        echo "so any changes must be made within the context visible"
+        echo "to xcatd."
+        false
+    fi
 
     EXTRACT_DIR=${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}.${TAG_NAME}/
     if [ -d $EXTRACT_DIR ]; then
@@ -186,6 +203,10 @@ pack_image() {
     echo "Running packimage"
     packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
     echo "Packimage completed"
+}
+
+xcat_image_metadata() {
+    lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l
 }
 
 pack_sanitycheck () {

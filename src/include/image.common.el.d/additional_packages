@@ -70,8 +70,10 @@ cat << EOF | tr -d ' ' | sed -e '/^\(#\|$\)/d' | tr '\n' ' '
     # (Required for XRootD)
     attr
 
-    # wget is needed by /opt/xcat/xcatdsklspost to download postscripts
+    # openssl and wget are needed by /opt/xcat/xcatdsklspost
+    # to download postscripts.
     # (Busybox wget does not seem to have the required features.)
+    openssl
     wget
 EOF
 
@@ -82,7 +84,8 @@ EOF
             echo smartmontools
             echo sysklogd
             ;;
-        el6 ) 
+        el[67] ) 
+            echo binutils
             echo cronie-noanacron
             echo nss-pam-ldapd
             echo portreserve

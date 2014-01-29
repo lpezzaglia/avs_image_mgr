@@ -51,15 +51,15 @@ generate_image () {
     echo "Using genimage from $GENIMAGE"
 
     # Gather information about this image from xCAT
-    _IMAGEMETADATA="$(lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l)"
+    _IMAGEMETADATA="$(xcat_image_metadata)"
     _PKGLIST="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *pkglist=\(.*\)$/\1/p')"
     _ROOTIMGDIR="$(echo "$_IMAGEMETADATA" | sed -ne 's/^\ *rootimgdir=\(.*\)$/\1/p')"
 
     if [ -z $_PKGLIST ]; then
-        echo "No pkglist found; check osimage settings"
+        echo "No pkglist found; check osimage settings (lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l) and the osimage and linuximage tables"
         return 1
     elif [ -z $_ROOTIMGDIR ]; then
-        echo "No rootimgdir found; check osimage settings"
+        echo "No rootimgdir found; check osimage settings (lsdef -t osimage ${OS}-${ARCH}-netboot-${PROFILE} -l) and the osimage and linuximage tables"
         return 1
     fi
 
@@ -68,10 +68,12 @@ generate_image () {
     _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
     print_minimal_pkglist > $_TMP_PKGLIST
     echo "mount -obind $_TMP_PKGLIST $_PKGLIST"
+    ls -ld $_TMP_PKGLIST $_PKGLIST
     mount -obind $_TMP_PKGLIST $_PKGLIST
 
     # Mount our build area at the xCAT image location
     echo "mount -obind $IMG_BASE_DIR $_ROOTIMGDIR"
+    ls -ld $IMG_BASE_DIR $_ROOTIMGDIR
     mount -obind $IMG_BASE_DIR $_ROOTIMGDIR
 
     # Check that the xCAT image location now only contains 4 items: .
@@ -169,7 +171,7 @@ EOF
     -i eth0 \
     -n ${NET_MODULES},${FS_MODULES},${STORAGE_MODULES} \
     -a $ARCH \
-    -k $KERNEL \
+    -k $(kernel_variant) \
     -o $OS \
     -p $PROFILE \
     0>/dev/null
@@ -184,6 +186,9 @@ EOF
             ;;
         el6 ) 
             ;;
+        el7)
+            sed -ie 's/^\(enabled=\)0$/\11/g' $IMGROOT/etc/yum.repos.d/rhel-beta.repo 
+            ;;
     esac
 
 
@@ -191,16 +196,21 @@ EOF
     # file.  See
     # http://lists.centos.org/pipermail/centos/2009-April/075627.html
     #
-    # Removing util-linux-ng with yum and %_excludedocs set appears
-    # not to work; use the "rpm" utility instead until a solution can
-    # be found
-    $YUM install rpm
-    in_target rpm -e --nodeps util-linux-ng
-    $YUM --releasever=${OS_RELEASE} remove slang usermode wireless-tools
-    $YUM remove cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb
-    $YUM remove libvolume_id libxml2-python pciutils
-    $YUM remove cyrus-sasl-lib logrotate
-    $YUM remove rpm
+    case $OS_FAMILY in
+        el[56] ) 
+            # Removing util-linux-ng with yum and %_excludedocs set appears
+            # not to work; use the "rpm" utility instead until a solution can
+            # be found
+            $YUM install rpm
+            in_target rpm -e --nodeps util-linux-ng
+            $YUM remove rpm
+            ;;
+    esac
+
+    $YUM remove slang usermode wireless-tools \
+        cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb \
+        libvolume_id libxml2-python pciutils \
+        cyrus-sasl-lib logrotate
 
 
     # Remove unnecessary locales, if requested
@@ -234,10 +244,15 @@ EOF
     # Remove any stale OFED modules from the image
     rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
 
+    # Update the shadow file
+    install -o root -g root -m 400 \
+        ${IMAGEFILES}/etc/shadow.netboot ${IMGROOT}/etc/shadow
+
 }
 
 # Print the most minimal pkglist possible for this image type
 print_minimal_pkglist () {
+
 # See http://lists.centos.org/pipermail/centos/2009-April/075627.html 
 cat << 'EOF'
 
@@ -272,6 +287,18 @@ cat << 'EOF'
 busybox.x86_64
 initscripts.x86_64
 sl-release
+util-linux-ng
 EOF
+
+    case $OS_FAMILY in
+        el[56] ) 
+            ;;
+        el[7] ) 
+            cat << 'EOF'
+kernel
+redhat-release
+EOF
+            ;;
+    esac
 }
 

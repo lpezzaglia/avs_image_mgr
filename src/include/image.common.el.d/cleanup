@@ -180,7 +180,7 @@ cleanup () {
 
     mkdir $IMGROOT/var/log
 
-    ERRS="$(in_target depmod -ae ${KERNEL} -F /boot/System.map-${KERNEL} 2>&1)"
+    ERRS="$(in_target depmod -ae $(kernel_variant) -F /boot/System.map-$(kernel_variant) 2>&1)"
 
     if [ ! -z "$ERRS" ]; then
         echo "$ERRS"

@@ -49,8 +49,14 @@ make_addon() {
     ln -s /data ${ADDONROOT}/export/data
     # Modify the copy of the image
     _create_addon_${1}
-    [ -z $KERNEL_MODULE_SIGNING_KEY ] || \
+
+    # Apply module signing, if requested
+    if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
+        unsign_kmods ${ADDONROOT}
+    else
         sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${ADDONROOT}
+    fi
+
     rm -f ${ADDONROOT}/export/data
     rmdir ${ADDONROOT}/export/
     
@@ -71,7 +77,7 @@ make_addon() {
     cd $ADDONROOT && find . | sort > ${ADDONSCRATCHMANIFEST}
 
     echo "Performing a diff -qr $IMGROOT `pwd` to create $ADDONSCRATCHMANIFEST"
-    cd $ADDONROOT && diff -qr $IMGROOT . | sort | sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' >> ${ADDONSCRATCHMANIFEST}
+    cd $ADDONROOT && diff -qr $IMGROOT . | sort | sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' 2>&1 >> ${ADDONSCRATCHMANIFEST} | (grep -v 'No such file or directory' || /bin/true )
     sed -i -e '/^.\/var.*$/d' ${ADDONSCRATCHMANIFEST}
     sed -i -e '/^.\/etc\/passwd.*$/d' ${ADDONSCRATCHMANIFEST}
     sed -i -e '/^.\/etc\/group.*$/d' ${ADDONSCRATCHMANIFEST}

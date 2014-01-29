@@ -39,6 +39,31 @@ _create_addon_lustre_server_2_4_0_mlnx_ofed_20_205 () {
     _addon_lustre server mlnx_ofed-2.0-2.0.5 2.4.0 "$@"
 }
 
+_create_addon_lustre_client_2_4_1 () {
+    _addon_lustre client none 2.4.1 "$@"
+}
+
+_create_addon_lustre_server_2_4_1 () {
+    _addon_lustre server none 2.4.1 "$@"
+}
+
+
+_create_addon_lustre_client_2_4_1_mlnx_ofed_20_205 () {
+    _addon_lustre client mlnx_ofed-2.0-2.0.5 2.4.1 "$@"
+}
+
+_create_addon_lustre_server_2_4_1_mlnx_ofed_20_205 () {
+    _addon_lustre server mlnx_ofed-2.0-2.0.5 2.4.1 "$@"
+}
+
+_create_addon_lustre_client_2_4_1_mlnx_ofed_20_300 () {
+    _addon_lustre client mlnx_ofed-2.0-3.0.0 2.4.1 "$@"
+}
+
+_create_addon_lustre_server_2_4_1_mlnx_ofed_20_300 () {
+    _addon_lustre server mlnx_ofed-2.0-3.0.0 2.4.1 "$@"
+}
+
 
 _addon_lustre () {
     _LUSTRETYPE=$1
@@ -59,7 +84,6 @@ _addon_lustre () {
     case $_LUSTRETYPE in
         server)
             __add_zfs 0.6.2
-            #$YUM install lustre lustre-ldiskfs kmod-zfs kmod-spl lustre-osd-zfs lustre-osd-ldiskfs lustre-iokit lustre-tests 
             $YUM install lustre lustre-ldiskfs lustre-iokit lustre-tests lustre-osd-zfs lustre-osd-ldiskfs
             ;;
         client)
