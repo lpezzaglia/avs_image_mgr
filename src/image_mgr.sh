@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# $Id: image_mgr.sh 60 2013-09-12 20:05:29Z larry $
 
 
 
