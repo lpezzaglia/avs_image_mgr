@@ -1,3 +1,9 @@
+avs_image_mgr 0.12.1                 2014-02-14
+======================================
+ * Fixed a bug where yum would be invoked incorrectly if
+   $YUM_EXTRA_ARGS was left at its default value of
+   the empty string
+
 avs_image_mgr 0.12.0                 2014-01-29
 ======================================
  * Build the image in a separate mount namespace
