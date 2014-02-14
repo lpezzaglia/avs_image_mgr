@@ -62,10 +62,10 @@ _do_yum () {
 
     case $OS_FAMILY in
         el5 ) 
-            yum --installroot=$_ROOT -y "$YUM_EXTRA_ARGS" "$@"
+            yum --installroot=$_ROOT -y $YUM_EXTRA_ARGS "$@"
             ;;
         el[67] ) 
-            yum  --setopt=history_record=no --releasever=$OS_RELEASE --installroot=$_ROOT -y "$YUM_EXTRA_ARGS" "$@"
+            yum  --setopt=history_record=no --releasever=$OS_RELEASE --installroot=$_ROOT -y $YUM_EXTRA_ARGS "$@"
             ;;
         * )
             echo "Unsupported \$OS_FAMILY $OS_FAMILY"
