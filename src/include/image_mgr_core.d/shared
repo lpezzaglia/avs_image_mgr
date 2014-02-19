@@ -149,7 +149,7 @@ run_step () {
 
 pack_image() {
 
-    if [[ "$(egrep -v ':(\*|!!):' /etc/shadow | wc -l)" != 0 ]]; then
+    if [[ "$(egrep -v ':(\*|!!|x):' /etc/shadow | wc -l)" != 0 ]]; then
         echo "Password hashes were found in /etc/shadow"
         echo "Packimage may copy these hashes into the image."
         echo "This is probably not what you want."
