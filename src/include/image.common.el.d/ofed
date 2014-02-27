@@ -27,7 +27,6 @@ _create_addon_ofed() {
             ;;
         el6 ) 
             /bin/cp -v $IMAGEFILES/repo.ofed.sl6/* $ADDONROOT/etc/yum.repos.d/
-            #OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint ofed-docs"
             OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib"
             OFED_RPMS="$OFED_MINIMAL_RPMS"
             $YUM install $OFED_RPMS
@@ -45,7 +44,6 @@ _create_addon_mlnx_ofed() {
         el6 ) 
             m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo
             cat  $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-1.5.3-3.1.0.repo
-            #OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint ofed-docs"
             OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
             OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
             $YUM install $OFED_RPMS
@@ -69,6 +67,10 @@ _create_addon_mlnx_ofed_20_205() {
 
 _create_addon_mlnx_ofed_20_300() {
    __add_mlnx_ofed 2.0-3.0.0 "$@"
+}
+
+_create_addon_mlnx_ofed_21_100() {
+   __add_mlnx_ofed 2.1-1.0.0 "$@"
 }
 
 __add_mlnx_ofed() {
