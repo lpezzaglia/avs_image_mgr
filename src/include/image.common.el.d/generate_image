@@ -65,14 +65,10 @@ generate_image () {
     # location
     _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
     print_minimal_pkglist > $_TMP_PKGLIST
-    echo "mount -obind $_TMP_PKGLIST $_PKGLIST"
-    ls -ld $_TMP_PKGLIST $_PKGLIST
-    mount -obind $_TMP_PKGLIST $_PKGLIST
+    bind_mount $_TMP_PKGLIST $_PKGLIST
 
     # Mount our build area at the xCAT image location
-    echo "mount -obind $IMG_BASE_DIR $_ROOTIMGDIR"
-    ls -ld $IMG_BASE_DIR $_ROOTIMGDIR
-    mount -obind $IMG_BASE_DIR $_ROOTIMGDIR
+    bind_mount $IMG_BASE_DIR $_ROOTIMGDIR
 
     # Check that the xCAT image location now only contains 4 items: .
     # .. markers and rootimg
@@ -109,8 +105,7 @@ generate_image () {
     fi
 
     # Mount this macros file at ${HOME}/.rpmmacros
-    echo "mount -obind $IMGROOT/etc/rpm/macros ~/.rpmmacros"
-    mount -obind $IMGROOT/etc/rpm/macros ~/.rpmmacros
+    bind_mount $IMGROOT/etc/rpm/macros ~/.rpmmacros
 
     # Install "busybox.anaconda" and "nash", which are needed for the
     # genimage-created initrd

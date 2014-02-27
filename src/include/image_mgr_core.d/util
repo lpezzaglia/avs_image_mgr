@@ -73,6 +73,21 @@ _do_yum () {
     esac
 }
 
+# Perform a bind mount of $1 on $2.
+# Create the target if it does not exist
+# bind_mount <source> <target>
+bind_mount () {
+    _SOURCE="$1"
+    shift
+    _TARGET="$1"
+    shift
+
+    [ -e "$_TARGET" ] || touch "$_TARGET"
+    echo "mount -obind $_SOURCE $_TARGET"
+    ls -ld "$_SOURCE" "$_TARGET"
+    mount -obind "$_SOURCE" "$_TARGET"
+}
+
 
 # Remove all kernel module signatures in ${_ROOTDIR}/lib/modules/
 unsign_kmods () {
