@@ -40,7 +40,7 @@ set -o posix
 
 . include/image_mgr.pre
 
-trap generic_fail 1 2 3 15 ERR
+trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
 
 
 
