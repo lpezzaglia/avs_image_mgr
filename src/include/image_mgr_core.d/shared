@@ -151,10 +151,13 @@ pack_image() {
 
     if [[ "$(egrep -v ':(\*|!!|x):' /etc/shadow | wc -l)" != 0 ]]; then
         echo "Password hashes were found in /etc/shadow"
-        echo "Packimage may copy these hashes into the image."
+        echo "packimage.pm may copy these hashes into the image."
         echo "This is probably not what you want."
+        echo "The pack process will be aborted."
         echo ""
-        echo "You may want to remove these hashes."
+        echo "You must remove these hashes from /etc/shadow before"
+        echo "the pack process will succeed."
+        echo ""
         echo "Note that /etc/shadow is read by the xcatd daemon,"
         echo "so any changes must be made within the context visible"
         echo "to xcatd."
