@@ -34,18 +34,22 @@ target_mkdir () {
 
 _do_install () {
     local OPTIND=1
-    while getopts "o:g:m" _OPTION; do
+    _SRC=""
+    while getopts "do:g:m:" _OPTION; do
         case $_OPTION in
             o ) _OWNER="$OPTARG" ;;
             g ) _GROUP="$OPTARG" ;;
             m ) _MODE="$OPTARG" ;;
+            d ) _SRC="-d" ;;
         esac
     done
 
     shift $((OPTIND - 1))
 
-    _SRC="$1"
-    shift
+    if [ -z "$_SRC" ]; then
+        _SRC="$1"
+        shift
+    fi
 
     _DEST="$1"
     shift
@@ -82,7 +86,22 @@ bind_mount () {
     _TARGET="$1"
     shift
 
-    [ -e "$_TARGET" ] || touch "$_TARGET"
+    # Check if the directory containing $_TARGET exists.  If it does
+    # not exist, do not try to create it.
+    _BASE_DIR="$(dirname "${_TARGET}")"
+    [ -e "$_BASE_DIR" ] || fail "$_BASE_DIR does not exist"
+
+    # Check if the target file/directory exists.  If not, then create
+    # it.  If the source is a directory, then create a target
+    # directory
+    [ -e "$_TARGET" ] || {
+        if [ -d "$_SOURCE" ]; then
+            $INSTALL_ROOT -m 755 -d "$_TARGET"
+        else
+            $INSTALL_ROOT -m 644 /dev/null "$_TARGET"
+        fi
+    }
+
     echo "mount -obind $_SOURCE $_TARGET"
     ls -ld "$_SOURCE" "$_TARGET"
     mount -obind "$_SOURCE" "$_TARGET"
