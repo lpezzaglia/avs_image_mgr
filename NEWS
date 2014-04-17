@@ -1,3 +1,11 @@
+avs_image_mgr 0.12.2                 2014-04-17
+======================================
+ * Improvements to error reporting
+ * Improvements to bind mount handling
+ * Add support for MLNX_OFED 2.1-1.1.0, Lustre 2.4.2, MongoDB
+   2.4.10, and unfsd, the userspace NFS server daemon
+ * Add support for dm-multipath
+
 avs_image_mgr 0.12.1                 2014-02-14
 ======================================
  * Fixed a bug where yum would be invoked incorrectly if
