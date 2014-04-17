@@ -35,3 +35,8 @@ _create_addon_mongodb_243 () {
     /bin/cp -v $IMAGEFILES/repo.10gen.sl6/* $ADDONROOT/etc/yum.repos.d/
     $YUM install mongo-10gen-2.4.3-mongodb_1.x86_64 mongo-10gen-server-2.4.3-mongodb_1.x86_64
 }
+
+_create_addon_mongodb_2410 () {
+    /bin/cp -v $IMAGEFILES/repo.10gen.sl6/* $ADDONROOT/etc/yum.repos.d/
+    $YUM install mongo-10gen-2.4.10-mongodb_1.x86_64 mongo-10gen-server-2.4.10-mongodb_1.x86_64
+}
