@@ -73,6 +73,9 @@ cat << EOF | tr -d ' ' | sed -e '/^\(#\|$\)/d' | tr '\n' ' '
     # (Busybox wget does not seem to have the required features.)
     openssl
     wget
+
+    # Add multipath support
+    device-mapper-multipath
 EOF
 
     (
