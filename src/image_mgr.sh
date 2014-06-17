@@ -48,6 +48,12 @@ ADDITIONAL_PACKAGES_LIST_PROVIDER="default"
 ADDONROOT=""
 ARCH=""
 ATTEMPT_RESUME=""
+
+# Whether or not to build add-ons with images
+# By setting $BASE_ONLY, only the base
+# image will be built.
+BASE_ONLY=""
+
 COMMIT_MESSAGE=""
 DATE=`date '+%Y%m%d'`
 DATESTAMP="$(date +%Y-%m-%d-%H-%M-%S)"

@@ -21,6 +21,11 @@
 # publicly, and to permit others to do so.
 
 make_addon() {
+    if [[ ! -z "$BASE_ONLY" ]]; then
+        # Addon creation is disabled
+        return 0
+    fi
+
     # Unmount the bind mounts in the image building area
     umount_fs || /bin/true
 

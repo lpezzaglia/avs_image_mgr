@@ -27,7 +27,7 @@ usage_and_fail () {
 
 usage () {
     echo -e "\nUsage:"
-    echo "`basename $0` create -p profile -o os -a arch -u your_username -m commit_message [ -b ] [ -f ] [ -s fsvs_repository ]"
+    echo "`basename $0` create -p profile -o os -a arch -u your_username -m commit_message [ -b ] [ -n ] [ -f ] [ -s fsvs_repository ]"
     echo "`basename $0` diff -p profile -o os -a arch -t <old tag>:[<new tag>]"
     echo "`basename $0` diff -p profile -o os -a arch -r <old revision>:[<new revision>]"
     echo "`basename $0` list-tags -p profile -o os -a arch [ -s fsvs_repository ]"
@@ -60,7 +60,7 @@ print_env () {
 
 parse_args () {
 
-    while getopts "o:a:p:u:m:s:r:t:x:bef" OPTION; do
+    while getopts "o:a:p:u:m:s:r:t:x:befn" OPTION; do
         case $OPTION in
             o ) OS="$OPTARG" ;;
             a ) ARCH="$OPTARG" ;;
@@ -74,6 +74,7 @@ parse_args () {
             f ) PACK_ON_COMPLETION=1 ;;
             x ) MASQUERADE_IMAGE="$OPTARG" ;;
             e ) print_env ;;
+            n ) BASE_ONLY=1 ;;
             * ) usage_and_fail ;;
         esac
     done
@@ -115,7 +116,7 @@ check_args_common () {
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}
             ;;
-        rhels7b ) 
+        rhel7|rhels7b ) 
             OS_FAMILY=el7
             OS_RELEASE=7.0
             ;;
@@ -366,6 +367,9 @@ check_args_create () {
     echo "Output will be committed to: ${FSVS_REPOSITORY}/trunk/"
     if [ ! -z "${ATTEMPT_RESUME}" ]; then
         echo "Will attempt to resume a previous build (-b flag passed)"
+    fi
+    if [ ! -z "${BASE_ONLY}" ]; then
+        echo "Will build only the base image (-n flag passed)"
     fi
     if [ ! -z "${PACK_ON_COMPLETION}" ]; then
         echo "Will automatically tag and pack upon completion (-f flag passed)"
