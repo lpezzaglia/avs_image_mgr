@@ -112,7 +112,7 @@ bind_mount () {
 unsign_kmods () {
     _ROOTDIR="$1"
     shift
-    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
+    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko' || /bin/true); do
         if ! [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
@@ -134,7 +134,7 @@ sign_kmods () {
     _K_INCLUDE="$(echo /lib/modules/$(kernel_variant)/build/include/)"
     _MODSIGN_NOTE="$(echo /lib/modules/$(kernel_variant)/build/scripts/mod/modsign-note.sh)"
 
-    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko'); do
+    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko' || /bin/true); do
         if [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
