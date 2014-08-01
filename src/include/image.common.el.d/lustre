@@ -87,12 +87,22 @@ _create_addon_lustre_server_2_4_2_mlnx_ofed_20_300 () {
     _addon_lustre server mlnx_ofed-2.0-3.0.0 2.4.2 "$@"
 }
 
-_create_addon_lustre_client_2_4_2_mlnx_ofed_21_100 () {
-    _addon_lustre client mlnx_ofed-2.1-1.0.0 2.4.2 "$@"
+
+
+_create_addon_lustre_client_2_5_2 () {
+    _addon_lustre client none 2.5.2 "$@"
 }
 
-_create_addon_lustre_server_2_4_2_mlnx_ofed_21_100 () {
-    _addon_lustre server mlnx_ofed-2.1-1.0.0 2.4.2 "$@"
+_create_addon_lustre_server_2_5_2 () {
+    _addon_lustre server none 2.5.2 "$@"
+}
+
+_create_addon_lustre_client_2_5_2_mlnx_ofed_21_100 () {
+    _addon_lustre client mlnx_ofed-2.1-1.0.0 2.5.2 "$@"
+}
+
+_create_addon_lustre_server_2_5_2_mlnx_ofed_21_100 () {
+    _addon_lustre server mlnx_ofed-2.1-1.0.0 2.5.2 "$@"
 }
 
 
@@ -118,7 +128,7 @@ _addon_lustre () {
             $YUM install lustre lustre-ldiskfs lustre-iokit lustre-tests lustre-osd-zfs lustre-osd-ldiskfs
             ;;
         client)
-            $YUM install lustre-client
+            $YUM install lustre
             ;;
     esac
 
