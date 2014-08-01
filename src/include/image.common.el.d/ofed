@@ -85,7 +85,7 @@ __add_mlnx_ofed() {
         el6 ) 
             m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/image_mgr.mlnx_ofed-${MOFED_VERSION}.repo.m4 > $ADDONROOT/etc/yum.repos.d/image_mgr.mlnx_ofed-${MOFED_VERSION}.repo
             OFED_MINIMAL_RPMS="ofed-scripts libibverbs libibverbs-utils libmthca libmlx4 libcxgb3 libcxgb4 libnes libipathverbs libibverbs-devel librdmacm librdmacm-utils mstflint kernel-ib opensm"
-            OFED_RPMS="$OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
+            OFED_RPMS="${OFED_RPMS:-} $OFED_MINIMAL_RPMS infiniband-diags ibutils2 perftest"
             $YUM install $OFED_RPMS
             install -o root -g root -m 644 $IMAGEFILES/etc/infiniband/openib.conf $ADDONROOT/etc/infiniband/
             sed -i -e '/^.*lro.*$/d' ${ADDONROOT}/etc/modprobe.d/ib_ipoib.conf 
