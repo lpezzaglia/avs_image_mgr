@@ -1,3 +1,13 @@
+avs_image_mgr 0.12.3                 2014-08-01
+======================================
+ * Add support for Lustre 2.5.2
+ * Add support for Docker
+ * Add support for a new flag: -n.  If -n is passed, only the base
+   image will be built.
+ * Add support for the case case were no kernel modules are present
+ * Allow specifying additional OFED RPMs to newer mlnx_ofed add-ons
+   through the OFED_RPMS environment variable
+
 avs_image_mgr 0.12.2                 2014-04-17
 ======================================
  * Improvements to error reporting
