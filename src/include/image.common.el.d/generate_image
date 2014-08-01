@@ -37,7 +37,7 @@ generate_image () {
             install -d -m 755 -o root -g root "${IMGROOT}/usr/"
             for dir in sbin bin lib64 lib; do
                 ln -sf "${FS_PREFIX}/${dir}" "${IMGROOT}/${dir}"
-                install -d -m 755 -o root -g root "${IMGROOT}/${FS_PREFIX}/${dir}"
+                mkdir "${IMGROOT}/${FS_PREFIX}/${dir}"
             done
             install -d -m 755 -o root -g root "${IMGROOT}/lib/modules/"
             ;;
@@ -182,7 +182,8 @@ EOF
             ;;
         el6 ) 
             ;;
-        el7 )
+        el7)
+            #sed -ie 's/^\(enabled=\)0$/\11/g' $IMGROOT/etc/yum.repos.d/rhel-beta.repo 
             ;;
     esac
 
