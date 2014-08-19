@@ -27,22 +27,27 @@ generic_fail () {
 }
 
 fail () {
-    _FRAME=0
-    _FILE="$(basename $0)"
-    _SRC="$1"
-    shift
-    _LINE="$1"
-    shift
-    _CODE="$1"
-    shift
-    echo
-    echo -e "\n* Call stack:"
-    while true; do
-        caller $_FRAME || break
-        _FRAME=$((${_FRAME}+1))
-    done
+
     echo -e "\n\n"
-    echo -e "\n*** Error $_CODE in $_SRC near line $_LINE: ${@} ***\n"
+    if [ $# -gt 2 ]; then
+        _FRAME=0
+        _FILE="$(basename $0)"
+        _SRC="$1"
+        shift
+        _LINE="$1"
+        shift
+        _CODE="$1"
+        shift
+        echo
+        echo -e "\n* Call stack:"
+        while true; do
+            caller $_FRAME || break
+            _FRAME=$((${_FRAME}+1))
+        done
+        echo -e "\n*** Error $_CODE in $_SRC near line $_LINE: ${@} ***\n"
+    else
+        echo -e "\n*** Error: ${@} ***\n"
+    fi
     exit 1
 }
 
