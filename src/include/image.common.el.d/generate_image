@@ -68,7 +68,6 @@ generate_image () {
     # location
     _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
     print_minimal_pkglist > $_TMP_PKGLIST
-    bind_mount $_TMP_PKGLIST $_PKGLIST
 
     # Mount our build area at the xCAT image location
     bind_mount $IMG_BASE_DIR $_ROOTIMGDIR
@@ -286,6 +285,7 @@ busybox.x86_64
 initscripts.x86_64
 sl-release
 util-linux-ng
+rpm
 EOF
 
     case $OS_FAMILY in
