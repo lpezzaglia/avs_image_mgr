@@ -321,5 +321,6 @@ image_mgr_main() {
     
     echo "Logging to $__IMG_MGR_LOG" >&2
     img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
+    return ${PIPESTATUS[0]}
 }
 
