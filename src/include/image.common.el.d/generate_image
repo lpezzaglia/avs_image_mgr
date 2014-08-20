@@ -110,12 +110,14 @@ generate_image () {
     # Mount this macros file at ${HOME}/.rpmmacros
     bind_mount $IMGROOT/etc/rpm/macros ~/.rpmmacros
 
-    # Install "busybox.anaconda" and "nash", which are needed for the
-    # genimage-created initrd
-    install -o root -g root -m 755 \
-        $IMAGEFILES/busybox.anaconda $IMGROOT/sbin/
-    install -o root -g root -m 755 \
-        $IMAGEFILES/nash $IMGROOT/sbin/
+    # Install "busybox.anaconda" and "nash" if they are present
+    # in $IMAGEFILES.  These are needed for initrds created
+    # with old versions of genimage
+    for _FILE in busybox.anaconda nash; do
+        [ ! -e $IMAGEFILES/$_FILE ] || \
+            install -o root -g root -m 755 \
+            $IMAGEFILES/$_FILE $IMGROOT/sbin/
+    done
 
 
     NET_MODULES="bnx2,tg3,forcedeth,igb,e1000,e1000e,virtio,virtio_pci,virtio_net"
