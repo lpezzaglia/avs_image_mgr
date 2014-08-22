@@ -78,12 +78,12 @@ in_target() {
 }
 
 prep_build_dir () {
-	if [ -z "$ATTEMPT_RESUME" ]; then
-            BASE_DIR_NAME="$(echo $(dirname $BASE)/$(basename $BASE))"
-	    mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
-	fi
-	mkdir -p $IMGROOT
-	mkdir -p ${IMGROOT}/../markers/
+    if [ -z "$ATTEMPT_RESUME" ]; then
+        BASE_DIR_NAME="$(echo $(dirname $BASE)/$(basename $BASE))"
+        mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
+    fi
+    mkdir -p $IMGROOT
+    mkdir -p ${IMGROOT}/../markers/
 }
 
 prepare_image_directory () {
@@ -130,9 +130,9 @@ run_step () {
         fi
 
         TIME_END=$(date +%s)
-	if [ ! -d $MARKER_DIR ]; then
-	    mkdir -p $MARKER_DIR
-	fi
+        if [ ! -d $MARKER_DIR ]; then
+            mkdir -p $MARKER_DIR
+        fi
         echo $((${TIME_END}-${TIME_BEGIN})) > ${COMPLETION_MARKER}.time
         du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-post
         if [ -d $IMGROOT/var/lib/rpm ]; then
