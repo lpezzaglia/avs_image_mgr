@@ -20,21 +20,31 @@
 # distribute copies to the public, perform publicly and display
 # publicly, and to permit others to do so.
 
+# Install a file from $IMAGEFILES into the image
+# install_file [source filename relative to $IMAGEFILES] [destdir]
+install_file () {
+    local _FILE="$1"; shift
+    local _DEST="$1"; shift
+    local _MODE="$1"; shift
+    local _SRC_FILE="$IMAGEFILES/$_FILE"
+
+    [ ! -e "$_SRC_FILE ]" || \
+        $INSTALL_ROOT -m $_MODE "$_SRC_FILE" "$_DEST"
+}
 
 build_prep () {
 
-    cp -p $IMAGEFILES/etc/hosts $IMGROOT/etc/
-    cp -p $IMAGEFILES/etc/hosts.allow $IMGROOT/etc/
-    cp -p $IMAGEFILES/etc/hosts.deny $IMGROOT/etc/
-    cp /etc/localtime $IMGROOT/etc/
-    cp -p /etc/resolv.conf $IMGROOT/etc/
-
+    install_file etc/hosts         /etc/ 644 
+    install_file etc/hosts.allow   /etc/ 600 
+    install_file etc/hosts.deny    /etc/ 600 
+    install_file etc/localtime     /etc/ 644 
+    install_file etc/resolv.conf   /etc/ 644
+        
     # Disable zeroconf
     echo "NOZEROCONF=yes" >> $IMGROOT/etc/sysconfig/network
 
-    # Remove /home directory so Cfengine can put a link in its place
+    # Remove home area
     rmdir $IMGROOT/home
-
 }
 
 mount_fs () {
@@ -42,7 +52,8 @@ mount_fs () {
 }
 
 setup_yum_repos () {
-    cp -f $IMAGEFILES/config/yum.conf $IMGROOT/etc/yum.conf
+    install_file config/yum.conf /etc/ 644
+
     # Do not install 32-bit RPMS.
     echo 'exclude = *.i?86' >> $IMGROOT/etc/yum.conf
 
@@ -58,10 +69,17 @@ setup_yum_repos () {
             rm -rf $IMGROOT/etc/yum.repos.d
             $YUM clean all
             target_mkdir /etc/yum.repos.d/
-            cp -av $IMAGEFILES/repo.sl6/* $IMGROOT/etc/yum.repos.d/
-            cp -av $IMAGEFILES/repo.unscd.sl6/* $IMGROOT/etc/yum.repos.d/
             rm -f $IMGROOT/etc/yum.repos.d/local-repository.repo
-            m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/kernel.repo.m4 > $IMGROOT/etc/yum.repos.d/kernel.repo
+
+            [ ! -d $IMAGEFILES/repo.sl6 ] || \
+                rsync -a $IMAGEFILES/repo.sl6/* $IMGROOT/etc/yum.repos.d/
+
+            [ ! -d $IMAGEFILES/repo.unscd.sl6 ] || \
+                rsync -a $IMAGEFILES/repo.unscd.sl6/* $IMGROOT/etc/yum.repos.d/
+
+            [ ! -e $IMAGEFILES/kernel.repo.m4 ] || \
+                m4 -DKRNL=$KERNEL_NOARCH $IMAGEFILES/kernel.repo.m4 \
+                    > $IMGROOT/etc/yum.repos.d/kernel.repo
             ;;
         el7 ) 
             cp -av $IMAGEFILES/repo.el7/* $IMGROOT/etc/yum.repos.d/
