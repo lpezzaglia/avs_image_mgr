@@ -274,9 +274,10 @@ cat << 'EOF'
 -openafs
 busybox.x86_64
 initscripts.x86_64
+kernel.x86_64
+rpm.x86_64
 sl-release
-util-linux-ng
-rpm
+util-linux-ng.x86_64
 EOF
 
     case $OS_FAMILY in
