@@ -82,22 +82,22 @@ generate_image () {
         return 1
     fi
 
+    # Copy some default directories
     target_mkdir "/${FS_PREFIX}/sbin"
     target_mkdir /dev
-
-    # Copy some default configuration files to /etc/ in the build
-    # directory
     target_mkdir /etc
     target_mkdir /etc/rpm
 
-    for _FILE in passwd group motd; do
-        install -o root -g root -m 644 \
-            ${IMAGEFILES}/etc/${_FILE}.netboot ${IMGROOT}/etc/${_FILE}
-    done
+    # Install default passwd, group, shadow, and MOTD
+    install_file etc/group.netboot  /etc/group  644
+    install_file etc/motd.netboot   /etc/motd   644
+    install_file etc/passwd.netboot /etc/passwd 644
+    install_file etc/shadow.netboot /etc/shadow 400
 
-    install -o root -g root -m 400 \
-        ${IMAGEFILES}/etc/shadow.netboot ${IMGROOT}/etc/shadow
-
+    # Install "busybox.anaconda" and "nash" if they are present
+    # in $IMAGEFILES.  These are needed for initrds created
+    # with old versions of genimage
+    install_file busybox.anaconda nash /sbin/ 755
 
     # Create an RPM macros file
     if [[ "$INSTALL_DOCS" == "no" ]]; then
@@ -109,15 +109,6 @@ generate_image () {
 
     # Mount this macros file at ${HOME}/.rpmmacros
     bind_mount $IMGROOT/etc/rpm/macros ~/.rpmmacros
-
-    # Install "busybox.anaconda" and "nash" if they are present
-    # in $IMAGEFILES.  These are needed for initrds created
-    # with old versions of genimage
-    for _FILE in busybox.anaconda nash; do
-        [ ! -e $IMAGEFILES/$_FILE ] || \
-            install -o root -g root -m 755 \
-            $IMAGEFILES/$_FILE $IMGROOT/sbin/
-    done
 
 
     NET_MODULES="bnx2,tg3,forcedeth,igb,e1000,e1000e,virtio,virtio_pci,virtio_net"
@@ -243,8 +234,7 @@ EOF
     rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
 
     # Update the shadow file
-    install -o root -g root -m 400 \
-        ${IMAGEFILES}/etc/shadow.netboot ${IMGROOT}/etc/shadow
+    install_file etc/shadow.netboot /etc/shadow 400
 
 }
 
