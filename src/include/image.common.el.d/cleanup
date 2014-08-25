@@ -70,6 +70,28 @@ setup_remove_cracklib () {
     rm -rf $IMGROOT/usr/share/cracklib
 }
 
+# svc_disable [service]
+# Take whatever action necessary to prevent [service]
+# from starting automatically upon boot
+svc_disable() {
+    local _SERVICE="$1"
+
+    in_target chkconfig "$_SERVICE" || \
+        return 0    # Service does not exist or is already disabled
+
+    in_target chkconfig "$_SERVICE" off
+}
+
+# svc_enable [service]
+# Take whatever action necessary to make [service]
+# start automatically upon boot
+svc_enable() {
+    local _SERVICE="$1"
+
+    in_target chkconfig "$_SERVICE" || \
+        chkconfig "$_SERVICE" on
+}
+
 cleanup () {
 
     case $OS_FAMILY in
@@ -77,8 +99,6 @@ cleanup () {
             ;;
         el6 ) 
             $YUM erase cronie-anacron
-            in_target chkconfig nslcd off
-            in_target chkconfig portreserve on
             ;;
     esac
 
@@ -91,15 +111,10 @@ cleanup () {
     ln -s /sbin/busybox $IMGROOT/bin/patch
 
 
-    #echo 'CLOCKFLAGS=--debug' > $IMGROOT/etc/sysconfig/clock
     $YUM --enablerepo='*' clean all
 
-    # "yum clean all" does not seem to really clean up
-    # /var/cache/yum/, so we clean it up by hand
-    rm -rf $IMGROOT/var/cache/yum
     rm -rf $IMGROOT/var/log/yum.log
 
-    [ ! -d $IMGROOT/misc ] || rmdir $IMGROOT/misc
 
     case $OS_FAMILY in
         el5 ) 
@@ -108,9 +123,6 @@ cleanup () {
         el6 ) 
             sed -ie 's/Carbon)/Carbon) for '$SYSTEMNAME'/g' $IMGROOT/etc/issue
             sed -ie 's/\(\\m\)/\1 (\\l)/g' $IMGROOT/etc/issue
-            rm -rf $IMGROOT/var/lib/yum/yumdb
-            rm -rf $IMGROOT/var/lib/yum/history
-            rm -rf $IMGROOT/var/lib/yum/uuid
             rm -rf $IMGROOT/usr/share/wallpapers
             rm -rf $IMGROOT/usr/share/backgrounds
             rm -rf $IMGROOT/usr/share/firstboot
@@ -118,51 +130,31 @@ cleanup () {
             ;;
     esac
 
-    rm -rf $IMGROOT/usr/local
-
-    rm -rf $IMGROOT/usr/src
-    rm -rf $IMGROOT/usr/lib/debug
 
     rm -rf $IMGROOT/boot/initrd*
-
     rm -f $IMGROOT/etc/aliases.db
     rm -f $IMGROOT/etc/mail/virtusertable.db
     rm -f $IMGROOT/etc/mail/access.db
     rm -f $IMGROOT/etc/mail/domaintable.db
     rm -f $IMGROOT/etc/mail/mailertable.db
 
-    #rm -rf $IMGROOT/lib/modules/*/kernel/sound/
-    #rm -rf $IMGROOT/lib/modules/*/kernel/drivers/isdn
 
 
-
-    
-    rm -rf $IMGROOT/scratch/image_build
-    rm -rf $IMGROOT/data
-    rm -rf $IMGROOT/xcatpost
-
-
-    in_target chkconfig auditd off
-    in_target chkconfig cgconfig off
-    in_target chkconfig cpuspeed on
-    in_target chkconfig iptables off
-    in_target chkconfig ip6tables off ||/bin/true
-    in_target chkconfig nscd on
+    sbc_disable rpcidmapd
+    svc_disable auditd
+    svc_disable cgconfig
+    svc_disable ip6tables
+    svc_disable iptables
+    svc_disable lvm2-monitor
+    svc_disable nfs
+    svc_disable nslcd
+    svc_disable rpcgssd
+    svc_disable sysstat
+    svc_enable cpuspeed
+    svc_enable nscd
+    svc_enable portreserve
     in_target chkconfig --add smartd
-    in_target chkconfig rpcidmapd off || /bin/true
-    in_target chkconfig rpcgssd off || /bin/true
-
-    case $OS_FAMILY in
-        el5 ) 
-            in_target chkconfig lvm2-monitor off || /bin/true
-            in_target chkconfig lvm2-monitor --level 1 off || /bin/true
-            ;;
-    esac
-
-    in_target chkconfig nfs off || /bin/true
-    
-    # We start sysstat after other postscripts are run
-    in_target chkconfig sysstat off || /bin/true
+    svc_enable smartd
 
     # Delete these NSS .chk files as the RPM installation process
     # generates them differentely every time See:.
@@ -171,21 +163,38 @@ cleanup () {
     rm -f $IMGROOT/usr/lib64/libfreebl3.chk
     rm -f $IMGROOT/usr/lib64/libsoftokn3.chk
 
+    # "yum clean all" does not seem to really clean up
+    # /var/cache/yum/, so we clean it up by hand
+    for _dir in \
+        $IMGROOT/data \
+        $IMGROOT/misc \
+        $IMGROOT/scratch/image_build \
+        $IMGROOT/usr/lib/debug \
+        $IMGROOT/usr/local \
+        $IMGROOT/usr/src \
+        $IMGROOT/var/cache/yum \
+        $IMGROOT/var/lib/yum \
+        $IMGROOT/var/log \
+        $IMGROOT/xcatpost
+    do
+        [ ! -e "$_dir" ] || rm -rf "$_dir"
+    done
 
-    if [ -e $IMGROOT/var/log ]; then
-        rm -rf $IMGROOT/var/log
-    fi
+    install -d -o root -g root -m 755 $IMGROOT/var/log
+    install -d -o root -g root -m 755 $IMGROOT/var/lib/yum
 
-    mkdir $IMGROOT/var/log
 
+    check_kernel_symbols
+
+}
+
+check_kernel_symbols() {
     ERRS="$(in_target depmod -ae $(kernel_variant) -F /boot/System.map-$(kernel_variant) 2>&1)"
 
     if [ ! -z "$ERRS" ]; then
         echo "$ERRS"
         fail "depmod failed to resolve all symbols"
     fi
-
-
 }
 
 # Removes the RPM database.  This saves space, but removes the
