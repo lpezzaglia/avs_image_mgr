@@ -54,6 +54,20 @@ mount_fs () {
 setup_yum_repos () {
     install_file config/yum.conf /etc/ 644
 
+    [ -e $IMGROOT/etc/yum.conf ] || \
+        cat > $IMGROOT/etc/yum.conf << 'EOF'
+[main]
+cachedir=/var/cache/yum
+logfile=/var/log/yum.log
+pluginpath=/usr/lib/yum-plugins/
+debuglevel=2
+distroverpkg=redhat-release
+metadata_expire=72000
+tolerant=0
+exactarch=1
+plugins=1
+EOF
+
     # Do not install 32-bit RPMS.
     echo 'exclude = *.i?86' >> $IMGROOT/etc/yum.conf
 
