@@ -89,7 +89,8 @@ svc_enable() {
     local _SERVICE="$1"
 
     in_target chkconfig "$_SERVICE" || \
-        chkconfig "$_SERVICE" on
+        chkconfig "$_SERVICE" on || \
+        /bin/true    # Service likely does not exist
 }
 
 cleanup () {
