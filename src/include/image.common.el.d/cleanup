@@ -26,26 +26,19 @@ setup_remove_python () {
     rm -rf $IMGROOT/usr/lib/python2.4/ $IMGROOT/usr/lib64/python2.4/
 }
 
+# This function exists for historical reasons and does nothing
 setup_remove_man_pages () {
-    echo
-    #rm -rf $IMGROOT/usr/share/man
+    /bin/true
 }
 
+# This function exists for historical reasons and does nothing
 setup_remove_doc () {
-    echo
-    #rm -rf $IMGROOT/usr/share/doc
+    /bin/true
 }
 
+# This function exists for historical reasons and does nothing
 setup_remove_locales () {
-    echo
-    #for _LOCALE_DIR in $IMGROOT/usr/lib/locale $IMGROOT/usr/share/locale; do
-    #    cd $_LOCALE_DIR
-    #    for i in *; do 
-    #        if [[ "$i" != "${KEEP_LOCALE}" ]]; then
-    #            rm --one-file-system -rf "${_LOCALE_DIR}/$i"
-    #        fi
-    #    done
-    #done
+    /bin/true
 }
 
 setup_remove_zoneinfo () {
@@ -59,13 +52,16 @@ setup_remove_zoneinfo () {
             ;;
     esac
 }
+
+# This function exists for historical reasons and does nothing
 setup_remove_info () {
     echo
-    #rm -rf $IMGROOT/usr/share/info
 }
+
 setup_remove_i18n () {
     rm -rf $IMGROOT/usr/share/i18n
 }
+
 setup_remove_cracklib () {
     rm -rf $IMGROOT/usr/share/cracklib
 }
@@ -112,10 +108,6 @@ cleanup () {
     ln -s /sbin/busybox $IMGROOT/bin/patch
 
 
-    $YUM --enablerepo='*' clean all
-
-    rm -rf $IMGROOT/var/log/yum.log
-
 
     case $OS_FAMILY in
         el5 ) 
@@ -138,8 +130,6 @@ cleanup () {
     rm -f $IMGROOT/etc/mail/access.db
     rm -f $IMGROOT/etc/mail/domaintable.db
     rm -f $IMGROOT/etc/mail/mailertable.db
-
-
 
     svc_disable rpcidmapd
     svc_disable auditd
@@ -164,6 +154,7 @@ cleanup () {
     rm -f $IMGROOT/usr/lib64/libfreebl3.chk
     rm -f $IMGROOT/usr/lib64/libsoftokn3.chk
 
+    $YUM --enablerepo='*' clean all
     # "yum clean all" does not seem to really clean up
     # /var/cache/yum/, so we clean it up by hand
     for _dir in \
