@@ -144,7 +144,6 @@ cleanup () {
     svc_enable cpuspeed
     svc_enable nscd
     svc_enable portreserve
-    in_target chkconfig --add smartd
     svc_enable smartd
 
     # Delete these NSS .chk files as the RPM installation process
@@ -172,8 +171,8 @@ cleanup () {
         [ ! -e "$_dir" ] || rm -rf "$_dir"
     done
 
-    install -d -o root -g root -m 755 $IMGROOT/var/log
-    install -d -o root -g root -m 755 $IMGROOT/var/lib/yum
+    target_mkdir /var/log
+    target_mkdir /var/lib/yum
 
 
     check_kernel_symbols
