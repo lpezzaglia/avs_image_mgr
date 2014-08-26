@@ -140,7 +140,7 @@ cleanup () {
 
 
 
-    sbc_disable rpcidmapd
+    svc_disable rpcidmapd
     svc_disable auditd
     svc_disable cgconfig
     svc_disable ip6tables
