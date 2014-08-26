@@ -28,7 +28,7 @@ install_file () {
     local _MODE="$1"; shift
     local _SRC_FILE="$IMAGEFILES/$_FILE"
 
-    [ ! -e "$_SRC_FILE ]" || \
+    [ ! -e "$_SRC_FILE" ] || \
         $INSTALL_ROOT -m $_MODE "$_SRC_FILE" "$_DEST"
 }
 
