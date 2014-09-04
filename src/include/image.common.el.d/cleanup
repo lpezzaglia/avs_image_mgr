@@ -80,12 +80,16 @@ svc_disable() {
 
 # svc_enable [service]
 # Take whatever action necessary to make [service]
-# start automatically upon boot
+# start automatically upon boot.  Ignore the case
+# where [service] does not exist of chkconfig fails
+# to turn it on.
 svc_enable() {
     local _SERVICE="$1"
 
+    # Try to chkconfig the service on.
+    # Silently ignore failures.
     in_target chkconfig "$_SERVICE" || \
-        chkconfig "$_SERVICE" on || \
+        chkconfig "$_SERVICE" on &>/dev/null || \
         /bin/true    # Service likely does not exist
 }
 
