@@ -163,7 +163,9 @@ TAG_REVISION=""
 USER_NAME=""
 XCAT_NETBOOT_DIR=""
 YUM=""
-YUM_EXTRA_ARGS=""
+
+# Default extra arguments to pass to yum
+YUM_EXTRA_ARGS="-d 1"
 
 
 # The OS image will be built in BASE.
