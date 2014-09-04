@@ -81,7 +81,7 @@ IMG_BASE_DIR=""
 IMGROOT=""
 KEEP_LOCALE=""
 KERNEL="$(uname -r)"
-KERNEL_NOARCH=""
+KERNEL_NOARCH="$(echo $KERNEL | sed -e 's/.x86_64//')"
 KERNEL_SUFFIX=""
 
 # Sign kernel modules.  This is currently only supported on EL6.
