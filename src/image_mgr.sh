@@ -64,7 +64,10 @@ DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
 FSVS="_env_fsvs"
+
+# The path to the FSVS repository where images will be stored
 FSVS_REPOSITORY=""
+
 GENIMAGE_PROVIDER="default"
 GPFS_CONFIG_SERVERS=""
 
@@ -91,6 +94,7 @@ IMAGE_MGR_BASE="$IMAGE_MGR_SCRIPT_DIR"
 # The path to the $IMAGEFILES area, which most image building
 # functions will expect to contain suppport files
 IMAGEFILES="${IMAGE_MGR_BASE}/files/"
+
 
 IMAGE_OUTPUT_NAME=""
 IMG_BASE_DIR=""
@@ -139,6 +143,12 @@ OS_RELEASE=""
 PACK_ON_COMPLETION=""
 PROFILE=""
 STAMP=""
+SVNHOST=""
+SVNPROTO="file://"
+
+# The default path to the image repository area
+SVN_REPO_DIR="${IMAGE_MGR_BASE}/image_repo/"
+
 SYSTEMNAME="Generic"
 TAG_NAME=""
 TAG_PATH=""
