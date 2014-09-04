@@ -102,8 +102,6 @@ bind_mount () {
         fi
     }
 
-    echo "mount -obind $_SOURCE $_TARGET"
-    ls -ld "$_SOURCE" "$_TARGET"
     mount -obind "$_SOURCE" "$_TARGET"
 }
 
