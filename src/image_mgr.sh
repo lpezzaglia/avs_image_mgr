@@ -142,6 +142,11 @@ OS_MAJOR_VERSION=""
 OS_RELEASE=""
 PACK_ON_COMPLETION=""
 PROFILE=""
+
+# The default size of the / tmpfs filesystem.
+# This must be large enough to accommodate the size of the image.
+ROOTSIZE="1024"
+
 STAMP=""
 SVNHOST=""
 SVNPROTO="file://"
