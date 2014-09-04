@@ -107,8 +107,9 @@ generate_image () {
         echo '%_install_langs '"${INSTALL_LOCALES}" >> $IMGROOT/etc/rpm/macros
     fi
 
-    # Mount this macros file at ${HOME}/.rpmmacros
+    # Mount this macros file at ${HOME}/.rpmmacros and /etc/rpm/macros
     bind_mount $IMGROOT/etc/rpm/macros ~/.rpmmacros
+    bind_mount $IMGROOT/etc/rpm/macros /etc/rpm/macros
 
 
     NET_MODULES="bnx2,tg3,forcedeth,igb,e1000,e1000e,virtio,virtio_pci,virtio_net"
