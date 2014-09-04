@@ -42,7 +42,7 @@ fail () {
         echo -e "\n* Call stack:"
         while true; do
             _C=($(caller $_FRAME)) || break
-            printf "[%20s] %-50s\n" "${_C[2]}:${_C[0]}" ${_C[1]}
+            printf "[%40s] %-40s\n" "${_C[2]}:${_C[0]}" ${_C[1]}
             _FRAME=$((${_FRAME}+1))
         done
         echo -e "\n*** Error $_CODE in $_SRC near line $_LINE: ${@} ***\n"
