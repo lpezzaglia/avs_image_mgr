@@ -38,6 +38,10 @@ set -e
 set -u
 set -o posix
 
+# The path to the image_mgr.sh script
+IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
+cd "$IMAGE_MGR_SCRIPT_DIR"
+
 . include/image_mgr.pre
 
 trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
@@ -82,8 +86,6 @@ INSTALL_DOCS="no"
 # macro on RPM-based systems.
 INSTALL_LOCALES="C"
 
-# The path to the image_mgr.sh script
-IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
 
 # The path to a directory containing image support files.
 # By convention, most image building functions will
