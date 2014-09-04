@@ -74,6 +74,8 @@ provide_genimage () {
 }
 
 
+# in_target [command] [args] ...
+# Run $@ inside the image context
 in_target() {
     if [ -z "$ADDONROOT" ]; then
         _ROOT="${IMGROOT}"
@@ -84,15 +86,23 @@ in_target() {
     chroot $_ROOT $@
 }
 
+# prep_build_dir
+# Prepare the image build directory inside $BASE
 prep_build_dir () {
+    if [ ! -d "$BASE" ]; then
+        mkdir -p "$BASE"
+    fi
+
     if [ -z "$ATTEMPT_RESUME" ]; then
-        BASE_DIR_NAME="$(echo $(dirname $BASE)/$(basename $BASE))"
+        BASE_DIR_NAME="$(echo "$(dirname "$BASE")"/"$(basename "$BASE")")"
         mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
     fi
     mkdir -p $IMGROOT
     mkdir -p ${IMGROOT}/../markers/
 }
 
+# prepare_image_directory
+# This function exists for historical reasons, and does nothing.
 prepare_image_directory () {
     echo
 }
