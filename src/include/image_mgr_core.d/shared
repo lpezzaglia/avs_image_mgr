@@ -119,7 +119,7 @@ run_step () {
     else
         echo
         echo
-        echo "* Attempting to resume previous build *"
+        echo "[=] Attempting to resume previous build"
         echo
         echo
     fi
@@ -129,7 +129,7 @@ run_step () {
     fi
 
     RPM_QUERY="rpm --root $IMGROOT -qa --qf '%{NAME}-%{VERSION}-%{ARCH}\n'"
-    echo "*** BEGIN: $_STEP_NAME"
+    echo "[+] BEGIN: $_STEP_NAME"
     if [ ! -f $COMPLETION_MARKER ]; then
         if [ -d ${MARKER_DIR} ]; then
             if [ -d $IMGROOT/var/lib/rpm ]; then
@@ -138,12 +138,13 @@ run_step () {
             du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-pre
         fi
         TIME_BEGIN=$(date +%s)
-        $_STEP_NAME
+        $_STEP_NAME | sed 's/^/['$_STEP_NAME'] /g'
 
         if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
-            unsign_kmods ${IMGROOT}
+            unsign_kmods ${IMGROOT} | sed 's/^/[unsign_kmods] /g'
         else
-            sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT}
+            sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT} | \
+                sed 's/^/[sign_kmods] /g'
         fi
 
         TIME_END=$(date +%s)
@@ -157,9 +158,9 @@ run_step () {
         fi
         touch $COMPLETION_MARKER
     else
-        echo "*** $_STEP_NAME already finished"
+        echo "[=] $_STEP_NAME already finished"
     fi
-    echo "*** END: $_STEP_NAME"
+    echo "[-] END: $_STEP_NAME"
 }
 
 
