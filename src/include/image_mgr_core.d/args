@@ -82,9 +82,38 @@ parse_args () {
 
 check_args_specialized () {
 
+
+    # If a custom FSVS_REPOSITORY was not specified, then construct a
+    # URI based on the settings for SVNPROTO, SVNHOST, and
+    # SVN_REPO_DIR
+    
+    local _FSVS_URI_PREFIX="${SVNPROTO}://${SVNHOST}/"
+    local _FSVS_URI_REPO_BASE="${_FSVS_URI_PREFIX}/${SVN_REPO_DIR}"
     if [ -z "$FSVS_REPOSITORY" ]; then
-        FSVS_REPOSITORY=${SVNPROTO}://${SVNHOST}/${SVN_REPO_DIR}/netboot/${OS}/${ARCH}/${PROFILE}
+
+        FSVS_REPOSITORY="${_FSVS_URI_REPO_BASE}/netboot/${OS}/${ARCH}/${PROFILE}"
+
+        # Additionally, for file-based repositories, ensure the
+        # repository directory exists:
+
+        if [[ "${_FSVS_URI_PREFIX}" == "file:///" ]]; then
+            if [ ! -e "${SVN_REPO_DIR}" ]; then
+                mkdir -p "${SVN_REPO_DIR}"
+                svnadmin create "${SVN_REPO_DIR}"
+            fi
+        fi
     fi
+
+    # Ensure that the repository is accessible
+    svn info "${_FSVS_URI_REPO_BASE}" >/dev/null
+
+    # Create the directory skeleton if it does not already exist
+    for _DIR in "${FSVS_REPOSITORY}/{trunk,tags,branches}"; do
+        svn info "${_DIR}" &>/dev/null || \
+            svn mkdir --parents -m "Automatically creating directory skeleton"
+        # Ensure the creation was successful
+        svn info "${_DIR}" >/dev/null
+    done
 
     if [ -z "$TAG_REVISION" ]; then
         TAG_REVISION="HEAD"
