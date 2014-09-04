@@ -26,11 +26,23 @@ generic_fail () {
     fail "$@" "Failure detected"
 }
 
+# hr
+# Print a horizontal line
+hr() {
+    for _c in $(seq 1 $(tput cols)); do
+        echo -n '-'
+    done
+    echo
+}
+
 fail () {
 
+    cd "${CWD_ORIG}"
     echo -e "\n\n"
     if [ $# -gt 2 ]; then
-        _FRAME=0
+        # Throw away the top frame information, since it is our error
+        # handling function
+        _FRAME=1
         _FILE="$(basename $0)"
         _SRC="$1"
         shift
@@ -38,18 +50,46 @@ fail () {
         shift
         _CODE="$1"
         shift
-        echo
-        echo -e "\n* Call stack:"
+
+        echo -e "\n\n"
+        hr
+        echo -e "* Environment:"
+        hr
+        env
+        hr
+
+        echo -e "\n\n"
+        hr
+        echo -e "* Call stack:"
+        hr
         while true; do
+            # Get the information about this frame
             _C=($(caller $_FRAME)) || break
-            printf "[%38s] %-40s\n" \
-                "$(echo ${_C[2]}:${_C[0]} | tail -c 37)" ${_C[1]}
+
+            # Get the line, function name, and file name of current
+            # code location in this frame
+            _ELINE="${_C[0]}"
+            _EFUNC="${_C[1]}"
+            _EFILE="${_C[2]}"
+
+            # Determine how much space we have to print out the
+            # pertinent lines
+            _LN="$(($(tput cols)-70))"
+            [ $_LN -gt 2 ] || _LN=2
+
+            # Print the information about this frame
+            printf "[%38s] [%-20s] %-${_LN}s\n" \
+                "$(echo ${_EFILE}:${_ELINE} | tail -c 37)" \
+                "$(echo ${_EFUNC} | cut -c -17)" \
+                "$(sed -n ${_ELINE}p ${_EFILE} || echo -n '(no data)' | tr -d '\n')"
             _FRAME=$((${_FRAME}+1))
         done
-        echo -e "\n*** Error $_CODE in $_SRC near line $_LINE: ${@} ***\n"
+        hr
+        echo -e "\n*** Error $_CODE in $_SRC near line $_LINE. ***\n"
     else
         echo -e "\n*** Error: ${@} ***\n"
     fi
+    hr
     exit 1
 }
 
