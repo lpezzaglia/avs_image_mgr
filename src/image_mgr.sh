@@ -44,6 +44,9 @@ trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
 
 
 
+# Set default values for many variables.  Some of these
+# can be overridden by files included from the site-specific/ and
+# image-specific/ areas
 ADDITIONAL_PACKAGES_LIST_PROVIDER="default"
 ADDONROOT=""
 ARCH=""
@@ -60,7 +63,7 @@ DATESTAMP="$(date +%Y-%m-%d-%H-%M-%S)"
 DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
-FSVS="$(which fsvs)"
+FSVS="_env_fsvs"
 FSVS_REPOSITORY=""
 GENIMAGE_PROVIDER="default"
 GPFS_CONFIG_SERVERS=""
@@ -75,6 +78,19 @@ INSTALL_DOCS="no"
 # some other value, the value will be set as the %install_langs RPM
 # macro on RPM-based systems.
 INSTALL_LOCALES="C"
+
+# The path to the image_mgr.sh script
+IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
+
+# The path to a directory containing image support files.
+# By convention, most image building functions will
+# expect support files in ${IMAGE_MGR_BASE}/files or
+# ${IMAGE_MGR_BASE}/src
+IMAGE_MGR_BASE="$IMAGE_MGR_SCRIPT_DIR"
+
+# The path to the $IMAGEFILES area, which most image building
+# functions will expect to contain suppport files
+IMAGEFILES="${IMAGE_MGR_BASE}/files/"
 
 IMAGE_OUTPUT_NAME=""
 IMG_BASE_DIR=""
@@ -133,12 +149,13 @@ YUM=""
 YUM_EXTRA_ARGS=""
 
 
+# The OS image will be built in BASE.
+# Placing this area on tmpfs may speed up image builds for compatible images
+BASE="${IMAGE_MGR_BASE}/builddir/"
 
 
-# The path to the image_mgr.sh script
-SCRIPT_DIR=$(dirname $0)
-cd $SCRIPT_DIR
-IMAGE_MGR=$(pwd)/$(basename $0)
+cd "$IMAGE_MGR_SCRIPT_DIR"
+IMAGE_MGR="$(pwd)/$(basename "$0")"
 
 # Ensure we are running in an unshared mount namespace
 env | grep '^__UNSHARED=1' >/dev/null 2>&1 || \
