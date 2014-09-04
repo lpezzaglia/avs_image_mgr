@@ -40,6 +40,7 @@ set -o posix
 
 # The path to the image_mgr.sh script
 IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
+CWD_ORIG="$(pwd)"
 cd "$IMAGE_MGR_SCRIPT_DIR"
 
 . include/image_mgr.pre
