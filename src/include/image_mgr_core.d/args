@@ -367,13 +367,6 @@ check_args_create () {
     done
 
 
-    RUNNING_KERNEL="$(uname -r)"
-
-    if [[ "${RUNNING_KERNEL}" != "${KERNEL}" ]]; then
-        echo "Running kernel (${RUNNING_KERNEL}) does not match target kernel (${KERNEL})"
-    fi
-
-         
     IMG_BASE_DIR=${BASE}/install/netboot/$OS/$ARCH/$PROFILE/
     IMGROOT=${IMG_BASE_DIR}/rootimg
     YUM="_do_yum"
