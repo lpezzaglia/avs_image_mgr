@@ -108,7 +108,7 @@ check_args_specialized () {
     svn info "${_FSVS_URI_REPO_BASE}" >/dev/null
 
     # Create the directory skeleton if it does not already exist
-    for _DIR in "${FSVS_REPOSITORY}/{trunk,tags,branches}"; do
+    for _DIR in "${FSVS_REPOSITORY}"/{trunk,tags,branches}; do
         svn info "${_DIR}" &>/dev/null || \
             svn mkdir --parents \
                 -m "Automatically creating directory skeleton" "${_DIR}"
