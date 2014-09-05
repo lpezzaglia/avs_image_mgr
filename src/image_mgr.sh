@@ -68,6 +68,10 @@ DATESTAMP="$(date +%Y-%m-%d-%H-%M-%S)"
 DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
+
+# Whether we have reached an error state
+__ERROR_STATE=""
+
 FSVS="_env_fsvs"
 
 # The path to the FSVS repository where images will be stored
