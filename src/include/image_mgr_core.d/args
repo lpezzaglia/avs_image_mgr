@@ -87,8 +87,8 @@ check_args_specialized () {
     # URI based on the settings for SVNPROTO, SVNHOST, and
     # SVN_REPO_DIR
     
-    local _FSVS_URI_PREFIX="${SVNPROTO}${SVNHOST}/"
-    local _FSVS_URI_REPO_BASE="${_FSVS_URI_PREFIX}/${SVN_REPO_DIR}"
+    local _FSVS_URI_PREFIX="${SVNPROTO}${SVNHOST}"
+    local _FSVS_URI_REPO_BASE="${_FSVS_URI_PREFIX}${SVN_REPO_DIR}"
     if [ -z "$FSVS_REPOSITORY" ]; then
 
         FSVS_REPOSITORY="${_FSVS_URI_REPO_BASE}/netboot/${OS}/${ARCH}/${PROFILE}"
