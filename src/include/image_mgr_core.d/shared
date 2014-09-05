@@ -340,9 +340,11 @@ image_mgr_main() {
     echo "Logging to $__IMG_MGR_LOG" >&2
     img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
 
+    _RET=${PIPESTATUS[0]}
+
     # Unset our trap to avoid undesired double handling of errors
     trap - 1 2 3 15 ERR
 
-    return ${PIPESTATUS[0]}
+    return $_RET
 }
 
