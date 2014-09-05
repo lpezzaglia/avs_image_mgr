@@ -37,6 +37,9 @@ hr() {
 
 fail () {
 
+    # If we've already processed an error, do not process it again.
+    [ -z "$__ERROR_STATE" ] || exit 1
+
     cd "${CWD_ORIG}"
     echo -e "\n\n"
     if [ $# -gt 2 ]; then
@@ -90,6 +93,11 @@ fail () {
         echo -e "\n*** Error: ${@} ***\n"
     fi
     hr
+
+    # Set a variable in the environment to indicate an error has been
+    # reached
+    __ERROR_STATE="yes"
+
     exit 1
 }
 
