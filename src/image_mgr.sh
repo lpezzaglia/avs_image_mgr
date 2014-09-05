@@ -182,8 +182,11 @@ cd "$IMAGE_MGR_SCRIPT_DIR"
 IMAGE_MGR="$(pwd)/$(basename "$0")"
 
 # Ensure we are running in an unshared mount namespace
-env | grep '^__UNSHARED=1' >/dev/null 2>&1 || \
+env | grep '^__UNSHARED=1' >/dev/null 2>&1 || {
+    # Unset our trap to avoid undesired double handling of errors
+    trap - 1 2 3 15 ERR
     exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
+}
 
 
 # Import all functions
