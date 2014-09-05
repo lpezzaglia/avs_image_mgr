@@ -63,6 +63,13 @@ fail () {
 
         echo -e "\n\n"
         hr
+        echo -e "* Declarations:"
+        hr
+        declare
+        hr
+
+        echo -e "\n\n"
+        hr
         echo -e "* Call stack:"
         hr
         while true; do
