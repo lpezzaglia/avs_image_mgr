@@ -190,6 +190,6 @@ kernel_variant() {
 
 # Return the location of the "fsvs" command, if it is in $PATH
 _env_fsvs() {
-    env fsvs
+    which fsvs
 }
 
