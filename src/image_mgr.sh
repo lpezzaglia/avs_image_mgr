@@ -159,7 +159,7 @@ SVNHOST=""
 SVNPROTO="file://"
 
 # The default path to the image repository area
-SVN_REPO_DIR="${IMAGE_MGR_BASE}/image_repo/"
+SVN_REPO_DIR="${IMAGE_MGR_BASE}/image_repo"
 
 SYSTEMNAME="Generic"
 TAG_NAME=""
