@@ -96,7 +96,7 @@ check_args_specialized () {
         # Additionally, for file-based repositories, ensure the
         # repository directory exists:
 
-        if [[ "${_FSVS_URI_PREFIX}" == "file:///" ]]; then
+        if [[ "${_FSVS_URI_PREFIX}" == "file://" ]]; then
             if [ ! -e "${SVN_REPO_DIR}" ]; then
                 mkdir -p "${SVN_REPO_DIR}"
                 svnadmin create "${SVN_REPO_DIR}"
