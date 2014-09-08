@@ -1,0 +1,11 @@
+    image_buildenv_prep() {
+        true
+    }
+
+    image_specialize() {
+        run_step build_prep
+
+        run_step setup_yum_repos
+
+        run_step cleanup
+    }
