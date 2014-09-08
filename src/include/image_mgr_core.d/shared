@@ -77,13 +77,18 @@ provide_genimage () {
 # in_target [command] [args] ...
 # Run $@ inside the image context
 in_target() {
-    if [ -z "$ADDONROOT" ]; then
-        _ROOT="${IMGROOT}"
-    else
-        _ROOT="${ADDONROOT}"
-    fi
+    chroot $(get_buildroot) $@
+}
 
-    chroot $_ROOT $@
+# get_buildroot
+# Return the path of the root of the current
+# building area
+get_buildroot() {
+    if [ -z "$ADDONROOT" ]; then
+        echo "${IMGROOT}"
+    else
+        echo "${ADDONROOT}"
+    fi
 }
 
 # prep_build_dir
@@ -352,3 +357,16 @@ subshell_inc() {
 subshell_dec() {
     TOP_SUBSHELL_LEVEL=$((${TOP_SUBSHELL_LEVEL}-1))
 }
+
+image_buildenv_prep() {
+    true
+}
+
+image_specialize() {
+    run_step build_prep
+
+    run_step setup_yum_repos
+
+    run_step cleanup
+}
+
