@@ -66,7 +66,7 @@ generate_image () {
 
     # Set up a minimal pkglist and mount it at the xCAT pkglist
     # location
-    _TMP_PKGLIST=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
+    _TMP_PKGLIST=$(mktemp ${TMP_AREA}/image_mgr.XXXXXXXXXX)
     print_minimal_pkglist > $_TMP_PKGLIST
     bind_mount $_TMP_PKGLIST $_PKGLIST
 
@@ -129,7 +129,7 @@ generate_image () {
             done
 
             # Create a hotplug script to handle firmware load requests
-            _TMP_HOTPLUG=$(mktemp /tmp/image_mgr.XXXXXXXXXX)
+            _TMP_HOTPLUG=$(mktemp ${TMP_AREA}/image_mgr.XXXXXXXXXX)
             cat > $_TMP_HOTPLUG << 'EOF'
 #!/sbin/busybox.anaconda sh
 echo "$0 active:"

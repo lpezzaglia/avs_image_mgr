@@ -36,6 +36,7 @@
 set -E
 set -e
 set -u
+set -o pipefail
 set -o posix
 
 # The path to the image_mgr.sh script
@@ -43,10 +44,16 @@ IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
 CWD_ORIG="$(pwd)"
 cd "$IMAGE_MGR_SCRIPT_DIR"
 
+# Area to store temporary files
+TMP_AREA=$(mktemp -d "${TMPDIR:/tmp}/image_mgr.XXXXXXXXXX")
+
 . include/image_mgr.pre
 
 trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
 
+
+# The subshell level
+TOP_SUBSHELL_LEVEL=$BASH_SUBSHELL
 
 
 # Set default values for many variables.  Some of these
@@ -69,8 +76,6 @@ DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
 
-# Whether we have reached an error state
-__ERROR_STATE=""
 
 FSVS="_env_fsvs"
 
@@ -187,7 +192,6 @@ env | grep '^__UNSHARED=1' >/dev/null 2>&1 || {
     trap - 1 2 3 15 ERR
     exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
 }
-
 
 # Import all functions
 image_mgr_prep "$@"

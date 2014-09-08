@@ -102,10 +102,11 @@ check_args_specialized () {
                 svnadmin create "${SVN_REPO_DIR}"
             fi
         fi
+
+        # Ensure that the repository is accessible
+        svn info "${_FSVS_URI_REPO_BASE}" >/dev/null
     fi
 
-    # Ensure that the repository is accessible
-    svn info "${_FSVS_URI_REPO_BASE}" >/dev/null
 
     # Create the directory skeleton if it does not already exist
     for _DIR in "${FSVS_REPOSITORY}"/{trunk,tags,branches}; do
