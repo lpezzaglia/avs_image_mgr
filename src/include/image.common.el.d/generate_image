@@ -97,7 +97,8 @@ generate_image () {
     # Install "busybox.anaconda" and "nash" if they are present
     # in $IMAGEFILES.  These are needed for initrds created
     # with old versions of genimage
-    install_file busybox.anaconda nash /sbin/ 755
+    install_file busybox.anaconda /sbin/ 755
+    install_file nash /sbin/ 755
 
     # Create an RPM macros file
     if [[ "$INSTALL_DOCS" == "no" ]]; then

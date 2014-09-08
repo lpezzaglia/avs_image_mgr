@@ -24,7 +24,7 @@
 # install_file [source filename relative to $IMAGEFILES] [destdir]
 install_file () {
     local _FILE="$1"; shift
-    local _DEST="$1"; shift
+    local _DEST="$(get_buildroot)/$1"; shift
     local _MODE="$1"; shift
     local _SRC_FILE="$IMAGEFILES/$_FILE"
 
