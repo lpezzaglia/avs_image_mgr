@@ -22,7 +22,7 @@
 
 
 generic_fail () {
-    echo "Failure detected"
+    echo "Failure detected" >&2
     fail "$@" "Failure detected"
 }
 
@@ -36,12 +36,7 @@ hr() {
 }
 
 fail () {
-
-    # If we've already processed an error, do not process it again.
-    [ -z "$__ERROR_STATE" ] || exit 1
-
     cd "${CWD_ORIG}"
-    echo -e "\n\n"
     if [ $# -gt 2 ]; then
         # Throw away the top frame information, since it is our error
         # handling function
@@ -54,24 +49,30 @@ fail () {
         _CODE="$1"
         shift
 
-        echo -e "\n\n"
-        hr
-        echo -e "* Environment:"
-        hr
-        env
-        hr
+        # If we are in a subshell, just exit
+        if [ $BASH_SUBSHELL -ne $TOP_SUBSHELL_LEVEL ]; then
+            echo "*** Error $_CODE in $_SRC near line $_LINE. ***" >&2
+            exit 1
+        fi
 
-        echo -e "\n\n"
-        hr
-        echo -e "* Declarations:"
-        hr
-        declare
-        hr
+        echo -e "\n\n" >&2
+        hr >&2
+        echo -e "* Environment:" >&2
+        hr >&2
+        env >&2
+        hr >&2
 
-        echo -e "\n\n"
-        hr
-        echo -e "* Call stack:"
-        hr
+        echo -e "\n\n" >&2
+        hr >&2
+        echo -e "* Declarations:" >&2
+        hr >&2
+        declare >&2
+        hr >&2
+
+        echo -e "\n\n" >&2
+        hr >&2
+        echo -e "* Call stack:" >&2
+        hr >&2
         while true; do
             # Get the information about this frame
             _C=($(caller $_FRAME)) || break
@@ -93,17 +94,13 @@ fail () {
                 "$(echo ${_EFUNC} | cut -c -17)" \
                 "$(sed -n ${_ELINE}p ${_EFILE} || echo -n '(no data)' | tr -d '\n')"
             _FRAME=$((${_FRAME}+1))
-        done
-        hr
-        echo -e "\n*** Error $_CODE in $_SRC near line $_LINE. ***\n"
+        done >&2
+        hr >&2
+        echo -e "\n*** Error $_CODE in $_SRC near line $_LINE. ***\n" >&2
     else
-        echo -e "\n*** Error: ${@} ***\n"
+        echo -e "\n*** Error: ${@} ***\n" >&2
     fi
-    hr
-
-    # Set a variable in the environment to indicate an error has been
-    # reached
-    __ERROR_STATE="yes"
+    hr >&2
 
     exit 1
 }

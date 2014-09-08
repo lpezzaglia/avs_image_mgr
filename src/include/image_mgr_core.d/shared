@@ -138,7 +138,9 @@ run_step () {
             du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-pre
         fi
         TIME_BEGIN=$(date +%s)
+        subshell_inc
         $_STEP_NAME | sed 's/^/['$_STEP_NAME'] /g'
+        subshell_dec
 
         if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
             unsign_kmods ${IMGROOT} | sed 's/^/[unsign_kmods] /g'
@@ -333,18 +335,20 @@ img_main() {
 image_mgr_main() {
     env | grep '^__IMG_MGR_LOG=' >/dev/null 2>&1 || export __IMG_MGR_LOG=$(mktemp /tmp/image_mgr.XXXXXXXX)
     
-    #    echo "Logging to $__IMG_MGR_LOG"
-    #    exec 2>&1 | tee $__IMG_MGR_LOG
-    #    exit 0
-    
     echo "Logging to $__IMG_MGR_LOG" >&2
+
+
+    subshell_inc
     img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
+    subshell_dec
 
-    _RET=${PIPESTATUS[0]}
-
-    # Unset our trap to avoid undesired double handling of errors
-    trap - 1 2 3 15 ERR
-
-    return $_RET
+    return ${PIPESTATUS[0]}
 }
 
+subshell_inc() {
+    TOP_SUBSHELL_LEVEL=$((${TOP_SUBSHELL_LEVEL}+1))
+}
+
+subshell_dec() {
+    TOP_SUBSHELL_LEVEL=$((${TOP_SUBSHELL_LEVEL}-1))
+}

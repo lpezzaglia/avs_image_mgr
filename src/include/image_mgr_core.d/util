@@ -110,6 +110,11 @@ bind_mount () {
 unsign_kmods () {
     _ROOTDIR="$1"
     shift
+
+    # If the kernel modules directory does not exist, stop processing
+    # now.
+    [ -d "${_ROOTDIR}/lib/modules/" ] || return 0
+
     for _KMOD in $(find "${_ROOTDIR}/lib/modules/" -name '*.ko' || echo ''); do
         if ! [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
@@ -145,11 +150,11 @@ sign_kmods () {
             # The module is not already signed, so sign it.
 
             # Create temprorary files
-            _KMOD_EXTRACTED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_UNSIGNED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_SIG=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_SIG_C=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_NOTE=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_EXTRACTED=$(mktemp ${TMP_AREA}/sign_kmods.XXXXXXXXXX)
+            _KMOD_UNSIGNED=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_SIG=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_SIG_C=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_NOTE=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
 
             cp $_KMOD $_KMOD_UNSIGNED
 
