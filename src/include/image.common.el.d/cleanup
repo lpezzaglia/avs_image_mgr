@@ -111,8 +111,6 @@ cleanup () {
     ln -s /sbin/busybox $IMGROOT/bin/diff
     ln -s /sbin/busybox $IMGROOT/bin/patch
 
-
-
     case $OS_FAMILY in
         el5 ) 
             sed -ie 's/Boron)/Boron) for '$SYSTEMNAME'/g' $IMGROOT/etc/issue
@@ -135,20 +133,10 @@ cleanup () {
     rm -f $IMGROOT/etc/mail/domaintable.db
     rm -f $IMGROOT/etc/mail/mailertable.db
 
-    svc_disable rpcidmapd
-    svc_disable auditd
-    svc_disable cgconfig
-    svc_disable ip6tables
-    svc_disable iptables
-    svc_disable lvm2-monitor
-    svc_disable nfs
-    svc_disable nslcd
-    svc_disable rpcgssd
-    svc_disable sysstat
-    svc_enable cpuspeed
-    svc_enable nscd
-    svc_enable portreserve
-    svc_enable smartd
+    # Disable all services
+    chkconfig --list | awk '/:on/ {print $1}' | while read _SVC; do
+        svc_disable $_SVC
+    done
 
     # Delete these NSS .chk files as the RPM installation process
     # generates them differentely every time See:.
