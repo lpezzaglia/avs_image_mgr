@@ -63,6 +63,15 @@ make_addon() {
     rm -f ${ADDONROOT}/export/data
     rmdir ${ADDONROOT}/export/
     
+
+    # Create list of all files in the addon
+    rpm --root $IMGROOT -qa > $ADDONTMP/img_rpms
+    rpm --root $ADDONROOT -qa > $ADDONTMP/img_plus_addon_rpms
+    diff $ADDONTMP/img_rpms  $ADDONTMP/img_plus_addon_rpms | \
+        grep '^>' | \
+        cut -c 3- > \
+        $ADDONROOT/etc/addons/RPMS_${ADDON_NAME} || true 2>/dev/null 
+
     # Clean up the addon build area
     rm --one-file-system -rf "${ADDONROOT}/data"
     rm --one-file-system -rf "${ADDONROOT}/var/lib/yum"
@@ -77,14 +86,6 @@ make_addon() {
     rm --one-file-system -rf "${ADDONROOT}/etc/shadow"
     rm --one-file-system -rf "${ADDONROOT}/etc/gshadow"
     rm --one-file-system -rf "${ADDONROOT}/etc/ld.so.cache"*
-
-    # Create list of all files in the addon
-    rpm --root $IMGROOT -qa > $ADDONTMP/img_rpms
-    rpm --root $ADDONROOT -qa > $ADDONTMP/img_plus_addon_rpms
-    diff $ADDONTMP/img_rpms  $ADDONTMP/img_plus_addon_rpms | \
-        grep '^>' | \
-        cut -c 3- > \
-        $ADDONROOT/etc/addons/RPMS_${ADDON_NAME} || true 2>/dev/null 
 
     # Create list of all files in the original image
     cd $IMGROOT && find . | sort > ${IMGSCRATCHMANIFEST}

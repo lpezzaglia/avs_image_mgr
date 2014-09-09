@@ -58,14 +58,7 @@ sleep_5 () {
 
 # Provide the path to the default xCAT genimage utility
 provide_genimage_default () {
-    case $OS_FAMILY in
-        el* )
-            echo /opt/xcat/share/xcat/netboot/rh/genimage
-            ;;
-        * )
-            echo $(which genimage)
-            ;;
-    esac
+    echo "/opt/xcat/share/xcat/netboot/$(echo $OS |tr -d [0-9\.])/genimage"
 }
 
 # Provide the path to genimage

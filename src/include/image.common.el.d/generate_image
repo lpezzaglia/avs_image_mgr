@@ -156,8 +156,8 @@ EOF
     # -o: OS version
     # -p: xCAT profile to use
     # -l: Maximum size of / ramdisk (tmpfs)
-    cd /opt/xcat/share/xcat/netboot/rh
-    PERL5LIB=/opt/xcat/share/xcat/netboot/imgutils/ $GENIMAGE \
+    cd "$(dirname "$GENIMAGE")"
+    PERL5LIB=/opt/xcat/share/xcat/netboot/imgutils/ "$GENIMAGE" \
     -l ${ROOTSIZE}m \
     -i eth0 \
     -n ${NET_MODULES},${FS_MODULES},${STORAGE_MODULES} \
