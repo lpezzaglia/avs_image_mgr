@@ -72,10 +72,8 @@ setup_remove_cracklib () {
 svc_disable() {
     local _SERVICE="$1"
 
-    in_target chkconfig "$_SERVICE" || \
+    in_target chkconfig "$_SERVICE" off &>/dev/null || \
         return 0    # Service does not exist or is already disabled
-
-    in_target chkconfig "$_SERVICE" off
 }
 
 # svc_enable [service]
@@ -89,7 +87,7 @@ svc_enable() {
     # Try to chkconfig the service on.
     # Silently ignore failures.
     in_target chkconfig "$_SERVICE" || \
-        chkconfig "$_SERVICE" on &>/dev/null || \
+        in_target chkconfig "$_SERVICE" on &>/dev/null || \
         /bin/true    # Service likely does not exist
 }
 
@@ -133,7 +131,7 @@ cleanup () {
     rm -f $IMGROOT/etc/mail/mailertable.db
 
     # Disable all services
-    chkconfig --list | awk '/:on/ {print $1}' | while read _SVC; do
+    in_target chkconfig --list | awk '/:on/ {print $1}' | while read _SVC; do
         svc_disable $_SVC
     done
 
