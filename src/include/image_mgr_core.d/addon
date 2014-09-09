@@ -64,11 +64,19 @@ make_addon() {
     rmdir ${ADDONROOT}/export/
     
     # Clean up the addon build area
-    rm --one-file-system -rf ${ADDONROOT}/data
-    rm --one-file-system -rf ${ADDONROOT}/var/lib/yum
-    rm --one-file-system -rf ${ADDONROOT}/var/cache/yum
-    rm --one-file-system -rf ${ADDONROOT}/usr/share/doc
-    rm --one-file-system -rf ${ADDONROOT}/usr/man
+    rm --one-file-system -rf "${ADDONROOT}/data"
+    rm --one-file-system -rf "${ADDONROOT}/var/lib/yum"
+    rm --one-file-system -rf "${ADDONROOT}/var/cache/yum"
+    rm --one-file-system -rf "${ADDONROOT}/usr/share/doc"
+    rm --one-file-system -rf "${ADDONROOT}/usr/man"
+
+    # Remove undesired files from the add-on
+    rm --one-file-system -rf "${ADDONROOT}/var"
+    rm --one-file-system -rf "${ADDONROOT}/etc/passwd"
+    rm --one-file-system -rf "${ADDONROOT}/etc/group"
+    rm --one-file-system -rf "${ADDONROOT}/etc/shadow"
+    rm --one-file-system -rf "${ADDONROOT}/etc/gshadow"
+    rm --one-file-system -rf "${ADDONROOT}/etc/ld.so.cache"*
 
     # Create list of all files in the addon
     rpm --root $IMGROOT -qa > $ADDONTMP/img_rpms
@@ -87,17 +95,11 @@ make_addon() {
         sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' | \
         sort 2>&1 >> ${ADDONSCRATCHMANIFEST}
 
-    # Remove undesired files from the add-on
-    sed -i '/^.\/var.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i '/^.\/etc\/passwd.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i '/^.\/etc\/group.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i '/^.\/etc\/shadow.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i '/^.\/etc\/gshadow.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i '/^.\/etc\/ld\.so\.cache.*$/d' ${ADDONSCRATCHMANIFEST}
-
     # Perform a diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST to
     # create the addon entry list
-    ( diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST || true ) | grep '^>' | cut -c 5- > $IMGMANIFEST 2>/dev/null
+    ( diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST || true ) | \
+        grep '^>' | \
+        cut -c 5- > $IMGMANIFEST 2>/dev/null
 
     # Copy all files in the addon building are that did not exist in
     # the original image into the addon destination area.  This will
@@ -109,5 +111,8 @@ make_addon() {
     # Create list of all files in the addon
     cd $ADDONDEST && find . > ${ADDONMANIFEST}
 
+    # Clean up the addon building area
+    rm --one-file-system -rf "${ADDONROOT}"
+   
     ADDONROOT=""
 }
