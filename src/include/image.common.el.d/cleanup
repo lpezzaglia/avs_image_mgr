@@ -104,12 +104,11 @@ cleanup () {
     esac
 
     # Link some additional busybox utilities
-    ln -s /sbin/busybox $IMGROOT/bin/which
-    if [ ! -e $IMGROOT/bin/vi ]; then
-        ln -s /sbin/busybox $IMGROOT/bin/vi
-    fi
-    ln -s /sbin/busybox $IMGROOT/bin/diff
-    ln -s /sbin/busybox $IMGROOT/bin/patch
+    for _UTIL in vi diff patch; do
+        [ -e $IMGROOT/bin/$_UTIL ] || \
+            [ -e $IMGROOT/usr/bin/$_UTIL ] || \
+            ln -s /sbin/busybox $IMGROOT/bin/$_UTIL
+    done
 
     case $OS_FAMILY in
         el5 ) 
