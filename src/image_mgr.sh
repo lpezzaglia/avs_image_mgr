@@ -164,7 +164,7 @@ SVNHOST=""
 SVNPROTO="file"
 
 # The default path to the image repository area
-SVN_REPO_DIR="${IMAGE_MGR_BASE}/image_repo"
+SVN_REPO_DIR="${IMAGE_MGR_BASE}/_build.image_repo"
 
 SYSTEMNAME="Generic"
 TAG_NAME=""
@@ -180,7 +180,7 @@ YUM_EXTRA_ARGS="-d 1"
 
 # The OS image will be built in BASE.
 # Placing this area on tmpfs may speed up image builds for compatible images
-BASE="${IMAGE_MGR_BASE}/builddir/"
+BASE="${IMAGE_MGR_BASE}/_build.builddir/"
 
 
 cd "$IMAGE_MGR_SCRIPT_DIR"
