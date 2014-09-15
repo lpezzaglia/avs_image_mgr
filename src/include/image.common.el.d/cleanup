@@ -55,7 +55,7 @@ setup_remove_zoneinfo () {
 
 # This function exists for historical reasons and does nothing
 setup_remove_info () {
-    echo
+    true
 }
 
 setup_remove_i18n () {
