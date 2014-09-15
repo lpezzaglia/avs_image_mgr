@@ -33,6 +33,7 @@ commit_to_scm () {
     rsync -aSHC /install/postscripts build_info/ 
     rsync -aSHC /install/custom/netboot build_info/
     rsync -aSHC --exclude='_build.*' ${IMAGE_MGR_BASE}/ build_info/
+    rsync -aSHC "${LOG_DIR}" build_info/
     cp $__IMG_MGR_LOG build_info/image_mgr.log
     print_stats > build_info/stats
 

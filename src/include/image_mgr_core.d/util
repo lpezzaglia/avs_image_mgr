@@ -198,3 +198,8 @@ _env_fsvs() {
     env fsvs "$@"
 }
 
+# Create a new logfile in the log area
+mklog() {
+    _LOG_NAME="$1"; shift
+    mktemp "$LOG_DIR/${_LOG_NAME}.XXXXXXX.log"
+}

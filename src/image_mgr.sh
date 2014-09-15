@@ -116,6 +116,9 @@ KERNEL="$(uname -r)"
 KERNEL_NOARCH="$(echo $KERNEL | sed -e 's/.x86_64//')"
 KERNEL_SUFFIX=""
 
+# The directory in which log files should be stored.
+LOG_BASE_DIR="${IMAGE_MGR_BASE}/_build.logs/"
+
 # Sign kernel modules.  This is currently only supported on EL6.
 # On EL6, this will sign any out-of-tree kernel modules with the
 # GPG secret key named by ${KERNEL_MODULE_SIGNING_KEY}.  The secret
@@ -192,6 +195,9 @@ env | grep '^__UNSHARED=1' >/dev/null 2>&1 || {
     trap - 1 2 3 15 ERR
     exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
 }
+
+[ -d "$LOG_BASE_DIR" ] || mkdir "$LOG_BASE_DIR"
+LOG_DIR="$(mktemp -d "${LOG_BASE_DIR}/log.$(date +%Y-%m-%d-%H-%M-%S).XXXXX")"
 
 # Import all functions
 image_mgr_prep "$@"
