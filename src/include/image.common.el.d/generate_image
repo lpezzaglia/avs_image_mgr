@@ -150,6 +150,17 @@ EOF
             ;;
     esac
 
+
+    # Hide the weak-updates area to prevent any links there from
+    # being placed into the image by genimage
+    case $OS_FAMILY in
+        el* )
+            _WEAK_UPDATES="/lib/modules/${KERNEL}/weak-updates/"
+            [ ! -d "$_WEAK_UPDATES" ] || \
+                bind_mount /var/empty "$_WEAK_UPDATES"
+            ;;
+    esac
+
     # Launch genimage with the following arguments:
     # -i: Interfaces to activate
     # -n: Modules to try loading before bringing up the network
@@ -198,10 +209,19 @@ EOF
             ;;
     esac
 
-    $YUM remove slang usermode wireless-tools \
-        cryptsetup-luks dbus dmidecode hwdata libgpg-error libusb \
-        libvolume_id libxml2-python pciutils \
-        cyrus-sasl-lib logrotate
+    case $OS_FAMILY in
+        el5 ) 
+            $YUM remove slang usermode wireless-tools \
+                cryptsetup-luks dbus dmidecode \
+                hwdata libusb libxml2-python cyrus-sasl-lib \
+                libgpg-error libvolume_id pciutils logrotate
+            ;;
+        el6 )
+            $YUM remove dracut
+            ;;
+    esac
+
+
 
 
     # Remove unnecessary locales, if requested
@@ -244,7 +264,7 @@ EOF
 print_minimal_pkglist () {
 
 # See http://lists.centos.org/pipermail/centos/2009-April/075627.html 
-cat << 'EOF'
+cat << EOF
 
 -audit-libs-python
 -checkpolicy
@@ -274,12 +294,12 @@ cat << 'EOF'
 -vim-enhanced
 -kernel 
 -openafs
-busybox.x86_64
-initscripts.x86_64
-kernel.x86_64
-rpm.x86_64
+busybox.${ARCH}
+initscripts.${ARCH}
+kernel.${ARCH}
+rpm.${ARCH}
 sl-release
-util-linux-ng.x86_64
+util-linux-ng.${ARCH}
 EOF
 
     case $OS_FAMILY in
