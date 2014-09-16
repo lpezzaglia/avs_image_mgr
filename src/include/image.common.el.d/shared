@@ -226,24 +226,8 @@ setup_install_autofs () {
 
 setup_install_kernel () {
     case $OS_FAMILY in
-        el[56] ) 
-            $YUM erase kernel-2.6.18-194.3.1.el5
-            $YUM erase kernel-2.6.32-131.0.15.el6.x86_64
-
-            if [[ ! -z "${KERNEL_SUFFIX}" ]]; then
-                KERNELRPMS="$KERNELRPMDIR/kernel-${KERNEL_SUFFIX}-[23]*rpm"
-            else
-                KERNELRPMS="$KERNELRPMDIR/kernel-[23]*rpm"
-            fi
-
-            if [ "$OS_FAMILY" == "el6" ]; then
-                KERNELRPMS="$KERNELRPMS $KERNELRPMDIR/kernel-firmware*rpm"
-            fi
-
-            $YUM install $KERNELRPMS
-            ;;
-        el7 ) 
-            $YUM install kernel
+        el* ) 
+            $YUM install kernel-${KERNEL} kernel-firmware-${KERNEL}
             ;;
         * )
             echo "Unsupoorted \$OS_RELEASE $OS_RELEASE"
