@@ -58,14 +58,7 @@ sleep_5 () {
 
 # Provide the path to the default xCAT genimage utility
 provide_genimage_default () {
-    case $OS_FAMILY in
-        el* )
-            echo /opt/xcat/share/xcat/netboot/rh/genimage
-            ;;
-        * )
-            echo $(which genimage)
-            ;;
-    esac
+    echo "/opt/xcat/share/xcat/netboot/$(echo $OS |tr -d [0-9\.])/genimage"
 }
 
 # Provide the path to genimage
@@ -74,25 +67,40 @@ provide_genimage () {
 }
 
 
+# in_target [command] [args] ...
+# Run $@ inside the image context
 in_target() {
-    if [ -z "$ADDONROOT" ]; then
-        _ROOT="${IMGROOT}"
-    else
-        _ROOT="${ADDONROOT}"
-    fi
-
-    chroot $_ROOT $@
+    chroot $(get_buildroot) $@
 }
 
+# get_buildroot
+# Return the path of the root of the current
+# building area
+get_buildroot() {
+    if [ -z "$ADDONROOT" ]; then
+        echo "${IMGROOT}"
+    else
+        echo "${ADDONROOT}"
+    fi
+}
+
+# prep_build_dir
+# Prepare the image build directory inside $BASE
 prep_build_dir () {
+    if [ ! -d "$BASE" ]; then
+        mkdir -p "$BASE"
+    fi
+
     if [ -z "$ATTEMPT_RESUME" ]; then
-        BASE_DIR_NAME="$(echo $(dirname $BASE)/$(basename $BASE))"
+        BASE_DIR_NAME="$(echo "$(dirname "$BASE")"/"$(basename "$BASE")")"
         mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
     fi
     mkdir -p $IMGROOT
     mkdir -p ${IMGROOT}/../markers/
 }
 
+# prepare_image_directory
+# This function exists for historical reasons, and does nothing.
 prepare_image_directory () {
     echo
 }
@@ -104,12 +112,14 @@ run_step () {
     MARKER_DIR=${IMGROOT}/../markers/
     COMPLETION_MARKER=${MARKER_DIR}/${_STEP_NAME}-complete
 
+    _LOG=$(mklog "${_STEP_NAME}.stdout")
+
     if [ -z "$ATTEMPT_RESUME" ]; then
         rm -f ${COMPLETION_MARKER}*
     else
         echo
         echo
-        echo "* Attempting to resume previous build *"
+        echo "[=] Attempting to resume previous build"
         echo
         echo
     fi
@@ -119,7 +129,7 @@ run_step () {
     fi
 
     RPM_QUERY="rpm --root $IMGROOT -qa --qf '%{NAME}-%{VERSION}-%{ARCH}\n'"
-    echo "*** BEGIN: $_STEP_NAME"
+    echo "[+] BEGIN: $_STEP_NAME (log: $_LOG)"
     if [ ! -f $COMPLETION_MARKER ]; then
         if [ -d ${MARKER_DIR} ]; then
             if [ -d $IMGROOT/var/lib/rpm ]; then
@@ -128,12 +138,15 @@ run_step () {
             du -mxs $IMGROOT  > ${COMPLETION_MARKER}.size-pre
         fi
         TIME_BEGIN=$(date +%s)
-        $_STEP_NAME
+        #subshell_inc
+        $_STEP_NAME > "$_LOG"
+        #subshell_dec
 
         if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
-            unsign_kmods ${IMGROOT}
+            unsign_kmods ${IMGROOT} | sed 's/^/[unsign_kmods] /g'
         else
-            sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT}
+            sign_kmods ${KERNEL_MODULE_SIGNING_KEY} ${IMGROOT} | \
+                sed 's/^/[sign_kmods] /g'
         fi
 
         TIME_END=$(date +%s)
@@ -147,9 +160,9 @@ run_step () {
         fi
         touch $COMPLETION_MARKER
     else
-        echo "*** $_STEP_NAME already finished"
+        echo "[=] $_STEP_NAME already finished"
     fi
-    echo "*** END: $_STEP_NAME"
+    echo "[-] END: $_STEP_NAME"
 }
 
 
@@ -320,14 +333,35 @@ img_main() {
 }
 
 image_mgr_main() {
-    env | grep '^__IMG_MGR_LOG=' >/dev/null 2>&1 || export __IMG_MGR_LOG=$(mktemp /tmp/image_mgr.XXXXXXXX)
-    
-    #    echo "Logging to $__IMG_MGR_LOG"
-    #    exec 2>&1 | tee $__IMG_MGR_LOG
-    #    exit 0
+    env | grep '^__IMG_MGR_LOG=' >/dev/null 2>&1 || export __IMG_MGR_LOG=$(mklog image_mgr)
     
     echo "Logging to $__IMG_MGR_LOG" >&2
+
+
+    subshell_inc
     img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
+    subshell_dec
+
     return ${PIPESTATUS[0]}
+}
+
+subshell_inc() {
+    TOP_SUBSHELL_LEVEL=$((${TOP_SUBSHELL_LEVEL}+1))
+}
+
+subshell_dec() {
+    TOP_SUBSHELL_LEVEL=$((${TOP_SUBSHELL_LEVEL}-1))
+}
+
+image_buildenv_prep() {
+    true
+}
+
+image_specialize() {
+    run_step build_prep
+
+    run_step setup_yum_repos
+
+    run_step cleanup
 }
 

@@ -128,9 +128,7 @@ __addon_chos_install () {
     cat > $ADDONROOT/netboot.install_chos << 'EOF'
 #!/bin/bash
 
-set -e
-set -x
-set -u
+set -Eeu
 
 for file in /chos/var /chos/opt /chos/sgespool /chos/sys /usr/common /chos/dev/ptmx /chos/dev/pts /chos/dev/shm /chos/dev; do
     if [ -e $file ] || [ -L $file ]; then
@@ -150,11 +148,6 @@ EOF
     chmod +x $ADDONROOT/netboot.install_chos
     chroot $ADDONROOT bash -c "KERNEL=$KERNEL /netboot.install_chos"
     rm -f $ADDONROOT/netboot.install_chos
-
-    umount $ADDONROOT/chos/local/sys || /bin/true
-    umount $ADDONROOT/chos/local/proc || /bin/true
-    umount $ADDONROOT/chos/local/tmp || /bin/true
-    umount $ADDONROOT/chos/local || /bin/true
 
     # Build the CHOS module.  This process is based on the stock CHOS
     # dkms build procedure

@@ -36,14 +36,29 @@
 set -E
 set -e
 set -u
+set -o pipefail
 set -o posix
+
+# The path to the image_mgr.sh script
+IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
+CWD_ORIG="$(pwd)"
+cd "$IMAGE_MGR_SCRIPT_DIR"
+
+# Area to store temporary files
+TMP_AREA=$(mktemp -d "${TMPDIR:/tmp}/image_mgr.XXXXXXXXXX")
 
 . include/image_mgr.pre
 
 trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
 
 
+# The subshell level
+TOP_SUBSHELL_LEVEL=$BASH_SUBSHELL
 
+
+# Set default values for many variables.  Some of these
+# can be overridden by files included from the site-specific/ and
+# image-specific/ areas
 ADDITIONAL_PACKAGES_LIST_PROVIDER="default"
 ADDONROOT=""
 ARCH=""
@@ -60,7 +75,13 @@ DATESTAMP="$(date +%Y-%m-%d-%H-%M-%S)"
 DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
+
+
+FSVS="_env_fsvs"
+
+# The path to the FSVS repository where images will be stored
 FSVS_REPOSITORY=""
+
 GENIMAGE_PROVIDER="default"
 GPFS_CONFIG_SERVERS=""
 
@@ -75,13 +96,28 @@ INSTALL_DOCS="no"
 # macro on RPM-based systems.
 INSTALL_LOCALES="C"
 
+
+# The path to a directory containing image support files.
+# By convention, most image building functions will
+# expect support files in ${IMAGE_MGR_BASE}/files or
+# ${IMAGE_MGR_BASE}/src
+IMAGE_MGR_BASE="$IMAGE_MGR_SCRIPT_DIR"
+
+# The path to the $IMAGEFILES area, which most image building
+# functions will expect to contain suppport files
+IMAGEFILES="${IMAGE_MGR_BASE}/files/"
+
+
 IMAGE_OUTPUT_NAME=""
 IMG_BASE_DIR=""
 IMGROOT=""
 KEEP_LOCALE=""
 KERNEL="$(uname -r)"
-KERNEL_NOARCH=""
+KERNEL_NOARCH="$(echo $KERNEL | sed -e 's/.x86_64//')"
 KERNEL_SUFFIX=""
+
+# The directory in which log files should be stored.
+LOG_BASE_DIR="${IMAGE_MGR_BASE}/_build.logs/"
 
 # Sign kernel modules.  This is currently only supported on EL6.
 # On EL6, this will sign any out-of-tree kernel modules with the
@@ -121,27 +157,47 @@ OS_MAJOR_VERSION=""
 OS_RELEASE=""
 PACK_ON_COMPLETION=""
 PROFILE=""
+
+# The default size of the / tmpfs filesystem.
+# This must be large enough to accommodate the size of the image.
+ROOTSIZE="1024"
+
 STAMP=""
+SVNHOST=""
+SVNPROTO="file"
+
+# The default path to the image repository area
+SVN_REPO_DIR="${IMAGE_MGR_BASE}/_build.image_repo"
+
+SYSTEMNAME="Generic"
 TAG_NAME=""
 TAG_PATH=""
 TAG_REVISION=""
 USER_NAME=""
 XCAT_NETBOOT_DIR=""
 YUM=""
-YUM_EXTRA_ARGS=""
+
+# Default extra arguments to pass to yum
+YUM_EXTRA_ARGS="-d 1"
 
 
+# The OS image will be built in BASE.
+# Placing this area on tmpfs may speed up image builds for compatible images
+BASE="${IMAGE_MGR_BASE}/_build.builddir/"
 
 
-# The path to the image_mgr.sh script
-SCRIPT_DIR=$(dirname $0)
-cd $SCRIPT_DIR
-IMAGE_MGR=$(pwd)/$(basename $0)
+cd "$IMAGE_MGR_SCRIPT_DIR"
+IMAGE_MGR="$(pwd)/$(basename "$0")"
 
 # Ensure we are running in an unshared mount namespace
-env | grep '^__UNSHARED=1' >/dev/null 2>&1 || \
+env | grep '^__UNSHARED=1' >/dev/null 2>&1 || {
+    # Unset our trap to avoid undesired double handling of errors
+    trap - 1 2 3 15 ERR
     exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
+}
 
+[ -d "$LOG_BASE_DIR" ] || mkdir "$LOG_BASE_DIR"
+LOG_DIR="$(mktemp -d "${LOG_BASE_DIR}/log.$(date +%Y-%m-%d-%H-%M-%S).XXXXX")"
 
 # Import all functions
 image_mgr_prep "$@"

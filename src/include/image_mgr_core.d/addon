@@ -29,7 +29,10 @@ make_addon() {
     # Unmount the bind mounts in the image building area
     umount_fs || /bin/true
 
-    ADDON_NAME="$1"
+    ADDON_NAME="$1"; shift
+
+    _LOG=$(mklog "${ADDON_NAME}.stdout")
+
     ADDON_BASE_DIR=${IMG_BASE_DIR}/addons
     ADDONSCRATCH=$(mktemp -d ${BASE}/image.addonscratch.XXXXXXXX)
     ADDONTMP=$(mktemp -d ${BASE}/image.addontmp.XXXXXXXX)
@@ -45,13 +48,15 @@ make_addon() {
     [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
 
     # Copy the current image to the addon building area
-    echo "Copying the current image to the addon building area"
+    echo "[ ] Copying the current image to the addon building area"
     rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
 
     mkdir ${ADDONROOT}/export/
     ln -s /data ${ADDONROOT}/export/data
     # Modify the copy of the image
-    _create_addon_${1}
+    echo "[+] BEGIN: $ADDON_NAME (log: $_LOG)"
+    _create_addon_${ADDON_NAME} > "$_LOG"
+    echo "[-] END: $ADDON_NAME"
 
     # Apply module signing, if requested
     if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
@@ -63,46 +68,59 @@ make_addon() {
     rm -f ${ADDONROOT}/export/data
     rmdir ${ADDONROOT}/export/
     
-    # Clean up the addon build area
-    rm --one-file-system -rf ${ADDONROOT}/data
-    rm --one-file-system -rf ${ADDONROOT}/var/lib/yum
-    rm --one-file-system -rf ${ADDONROOT}/var/cache/yum
-    rm --one-file-system -rf ${ADDONROOT}/usr/share/doc
-    rm --one-file-system -rf ${ADDONROOT}/usr/man
 
     # Create list of all files in the addon
     rpm --root $IMGROOT -qa > $ADDONTMP/img_rpms
     rpm --root $ADDONROOT -qa > $ADDONTMP/img_plus_addon_rpms
-    diff $ADDONTMP/img_rpms  $ADDONTMP/img_plus_addon_rpms |grep '^>' |cut -c 3- > $ADDONROOT/etc/addons/RPMS_${ADDON_NAME} 2>/dev/null
+    diff $ADDONTMP/img_rpms  $ADDONTMP/img_plus_addon_rpms | \
+        grep '^>' | \
+        cut -c 3- > \
+        $ADDONROOT/etc/addons/RPMS_${ADDON_NAME} || true 2>/dev/null 
+
+    # Clean up the addon build area
+    rm --one-file-system -rf "${ADDONROOT}/data"
+    rm --one-file-system -rf "${ADDONROOT}/var/lib/yum"
+    rm --one-file-system -rf "${ADDONROOT}/var/cache/yum"
+    rm --one-file-system -rf "${ADDONROOT}/usr/share/doc"
+    rm --one-file-system -rf "${ADDONROOT}/usr/man"
+
+    # Remove undesired files from the add-on
+    rm --one-file-system -rf "${ADDONROOT}/var"
+    rm --one-file-system -rf "${ADDONROOT}/etc/passwd"
+    rm --one-file-system -rf "${ADDONROOT}/etc/group"
+    rm --one-file-system -rf "${ADDONROOT}/etc/shadow"
+    rm --one-file-system -rf "${ADDONROOT}/etc/gshadow"
+    rm --one-file-system -rf "${ADDONROOT}/etc/ld.so.cache"*
 
     # Create list of all files in the original image
     cd $IMGROOT && find . | sort > ${IMGSCRATCHMANIFEST}
     cd $ADDONROOT && find . | sort > ${ADDONSCRATCHMANIFEST}
 
-    echo "Performing a diff -qr $IMGROOT `pwd` to create $ADDONSCRATCHMANIFEST"
-    cd $ADDONROOT && diff -qr $IMGROOT . | sort | sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' 2>&1 >> ${ADDONSCRATCHMANIFEST} | (grep -v 'No such file or directory' || /bin/true ) &>/dev/null
-    sed -i -e '/^.\/var.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i -e '/^.\/etc\/passwd.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i -e '/^.\/etc\/group.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i -e '/^.\/etc\/shadow.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i -e '/^.\/etc\/gshadow.*$/d' ${ADDONSCRATCHMANIFEST}
-    sed -i -e '/^.\/etc\/ld\.so\.cache.*$/d' ${ADDONSCRATCHMANIFEST}
+    # Perform a diff -qr $IMGROOT `pwd` to create $ADDONSCRATCHMANIFEST
+    ( cd $ADDONROOT && diff -qr $IMGROOT . 2>&1 || true ) | \
+        sed -ne 's/^Files.*and \(\S\+\) differ/\1/p' | \
+        sort 2>&1 >> ${ADDONSCRATCHMANIFEST}
 
-    echo "Performing a diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST to create addon entry list"
-    diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST | grep '^>' | cut -c 5-  > $IMGMANIFEST 2>/dev/null
+    # Perform a diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST to
+    # create the addon entry list
+    ( diff $IMGSCRATCHMANIFEST $ADDONSCRATCHMANIFEST || true ) | \
+        grep '^>' | \
+        cut -c 5- > $IMGMANIFEST 2>/dev/null
 
     # Copy all files in the addon building are that did not exist in
     # the original image into the addon destination area.  This will
     # create an add-on that we can apply to an image as it boots
     cd $ADDONROOT
-    echo "Creating addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
+    echo "[ ] Finalizing addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
     rsync -aSHx --files-from=${IMGMANIFEST} ./ ${ADDONDEST}/
 
     # Create list of all files in the addon
     cd $ADDONDEST && find . > ${ADDONMANIFEST}
 
+    # Clean up the addon building area
+    rm --one-file-system -rf "${ADDONROOT}"
+   
     ADDONROOT=""
 
-    # Re-mount the bind mounts in the image building area
-    mount_fs || /bin/true
+    echo "[ ] Completed addon $ADDON_NAME"
 }

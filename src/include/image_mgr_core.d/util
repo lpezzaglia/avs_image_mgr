@@ -102,8 +102,6 @@ bind_mount () {
         fi
     }
 
-    echo "mount -obind $_SOURCE $_TARGET"
-    ls -ld "$_SOURCE" "$_TARGET"
     mount -obind "$_SOURCE" "$_TARGET"
 }
 
@@ -112,7 +110,12 @@ bind_mount () {
 unsign_kmods () {
     _ROOTDIR="$1"
     shift
-    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko' || echo ''); do
+
+    # If the kernel modules directory does not exist, stop processing
+    # now.
+    [ -d "${_ROOTDIR}/lib/modules/" ] || return 0
+
+    for _KMOD in $(find "${_ROOTDIR}/lib/modules/" -name '*.ko' || echo ''); do
         if ! [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
@@ -134,18 +137,24 @@ sign_kmods () {
     _K_INCLUDE="$(echo /lib/modules/$(kernel_variant)/build/include/)"
     _MODSIGN_NOTE="$(echo /lib/modules/$(kernel_variant)/build/scripts/mod/modsign-note.sh)"
 
-    for _KMOD in $(find ${_ROOTDIR}/lib/modules -name '*.ko' || /bin/true); do
+    # If the kernel modules directory does not exist, stop processing
+    # now.
+    [ -d "${_ROOTDIR}/lib/modules/" ] || return 0
+
+    # Iterate through each .ko file in the kernel modules area.
+    # If it is not already signed, then sign it.
+    for _KMOD in $(find "${_ROOTDIR}/lib/modules/" -name '*.ko'); do
         if [[ \
           "$(readelf -n ${_KMOD} | grep -o '^  module.sig' || /bin/true)" \
           != "  module.sig" ]]; then
             # The module is not already signed, so sign it.
 
             # Create temprorary files
-            _KMOD_EXTRACTED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_UNSIGNED=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_SIG=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_SIG_C=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
-            _KMOD_NOTE=$(mktemp /tmp/sign_kmods.XXXXXXXXXX)
+            _KMOD_EXTRACTED=$(mktemp ${TMP_AREA}/sign_kmods.XXXXXXXXXX)
+            _KMOD_UNSIGNED=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_SIG=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_SIG_C=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
+            _KMOD_NOTE=$(mktemp ${TMP_AREA}/gsign_kmods.XXXXXXXXXX)
 
             cp $_KMOD $_KMOD_UNSIGNED
 
@@ -173,8 +182,6 @@ sign_kmods () {
 
         fi
     done
-
-    echo "Signed kernel modules"
 }
 
 # Return the name of the current kernel variant
@@ -186,3 +193,13 @@ kernel_variant() {
     fi
 }
 
+# Return the location of the "fsvs" command, if it is in $PATH
+_env_fsvs() {
+    env fsvs "$@"
+}
+
+# Create a new logfile in the log area
+mklog() {
+    _LOG_NAME="$1"; shift
+    mktemp "$LOG_DIR/${_LOG_NAME}.XXXXXXX.log"
+}
