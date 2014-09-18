@@ -33,7 +33,7 @@ boot image using avs_image_mgr.
     node.  For production deployments, a dedicated image building node is
     recommended:
 
-        git clone http://github.com/lpezzaglia/avs_image_mgr
+        git clone https://github.com/lpezzaglia/avs_image_mgr
 
     By default, the image will be built and versioned within the
     checkout area, so ensure that sufficient space is available.
