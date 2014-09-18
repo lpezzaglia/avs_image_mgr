@@ -44,9 +44,6 @@ IMAGE_MGR_SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
 CWD_ORIG="$(pwd)"
 cd "$IMAGE_MGR_SCRIPT_DIR"
 
-# Area to store temporary files
-TMP_AREA=$(mktemp -d "${TMPDIR:/tmp}/image_mgr.XXXXXXXXXX")
-
 . include/image_mgr.pre
 
 trap 'generic_fail ${BASH_SOURCE[0]} $LINENO $?' 1 2 3 15 ERR
@@ -173,6 +170,12 @@ SYSTEMNAME="Generic"
 TAG_NAME=""
 TAG_PATH=""
 TAG_REVISION=""
+
+# Area to store temporary files
+TMP_BASE_DIR="${IMAGE_MGR_TMP_AREA:-${IMAGE_MGR_BASE}/_build.tmp}"
+[ -d "$TMP_BASE_DIR" ] || mkdir "$TMP_BASE_DIR"
+TMP_AREA=$(mktemp -d "${TMP_BASE_DIR}/tmp.XXXXXXXXXX")
+
 USER_NAME=""
 XCAT_NETBOOT_DIR=""
 YUM=""
