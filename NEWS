@@ -1,3 +1,9 @@
+avs_image_mgr 0.12.4                 2014-09-29
+======================================
+ * Immediately upgrade all packages after YUM repos have been
+   configured.  This should prevent issues in old packages from
+   triggering problems later in the build.
+
 avs_image_mgr 0.12.3                 2014-08-01
 ======================================
  * Add support for Lustre 2.5.2
