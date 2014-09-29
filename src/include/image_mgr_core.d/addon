@@ -48,8 +48,9 @@ make_addon() {
     [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
 
     # Copy the current image to the addon building area
-    echo "[ ] Copying the current image to the addon building area"
+    echo -n "[ ] Copying the current image to the addon building area... "
     rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
+    echo "done"
 
     mkdir ${ADDONROOT}/export/
     ln -s /data ${ADDONROOT}/export/data
@@ -111,7 +112,6 @@ make_addon() {
     # the original image into the addon destination area.  This will
     # create an add-on that we can apply to an image as it boots
     cd $ADDONROOT
-    echo "[ ] Finalizing addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
     rsync -aSHx --files-from=${IMGMANIFEST} ./ ${ADDONDEST}/
 
     # Create list of all files in the addon
@@ -122,5 +122,5 @@ make_addon() {
    
     ADDONROOT=""
 
-    echo "[ ] Completed addon $ADDON_NAME"
+    echo "[ ] Completed addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
 }
