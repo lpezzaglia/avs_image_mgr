@@ -69,6 +69,7 @@ setup_yum_repos () {
             ;;
     esac
 
+    $YUM upgrade
 }
 
 setup_disable_selinux () {
