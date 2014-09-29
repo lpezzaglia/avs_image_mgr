@@ -101,6 +101,7 @@ EOF
             ;;
     esac
 
+    $YUM upgrade
 }
 
 setup_disable_selinux () {
