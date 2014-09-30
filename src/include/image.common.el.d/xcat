@@ -36,7 +36,9 @@ _addon_xcat () {
     # Install xCAT and dependencies
     # perl-DBD-Pg is required to talk to an xCAT postgres database
     # perl-Sys-Virt is required for xCAT to control libvirt-based VM hosts
-    $YUM install xCAT perl-DBD-Pg perl-Sys-Virt
+    $YUM install perl-DBD-Pg perl-Sys-Virt
+
+    $YUM install --tsflags noscripts install xCAT
 
 }
 
