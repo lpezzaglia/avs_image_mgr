@@ -196,7 +196,8 @@ IMAGE_MGR="$(pwd)/$(basename "$0")"
 env | grep '^__UNSHARED=1' >/dev/null 2>&1 || {
     # Unset our trap to avoid undesired double handling of errors
     trap - 1 2 3 15 ERR
-    exec env __UNSHARED=1 unshare -m -- ${IMAGE_MGR} "$@"
+    exec env -i PATH="$PATH" TERM="$TERM" \
+        __UNSHARED=1 unshare -m -- bash --norc ${IMAGE_MGR} "$@"
 }
 
 [ -d "$LOG_BASE_DIR" ] || mkdir "$LOG_BASE_DIR"
