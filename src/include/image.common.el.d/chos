@@ -152,7 +152,7 @@ EOF
     # Build the CHOS module.  This process is based on the stock CHOS
     # dkms build procedure
     CHOS_MODULE_DIR=${ADDONROOT}/lib/modules/${KERNEL}/kernel/misc/
-    CHOS_SRC_DIR=${ADDONROOT}/usr/src/chos-*/
+    CHOS_SRC_DIR=$(echo ${ADDONROOT}/usr/src/chos-*/)
     cd ${CHOS_SRC_DIR}
     ./find_fork.sh $KERNEL
     make -C /lib/modules/${KERNEL}/build SUBDIRS=${CHOS_SRC_DIR} modules
@@ -162,9 +162,6 @@ EOF
     cp ${CHOS_SRC_DIR}/chos.ko ${CHOS_MODULE_DIR}/
     in_target depmod -A ${KERNEL}
 
-
-    in_target chkconfig --del chos
-    in_target chkconfig --add --level 345 chos
 
     # Create some additional directories in / so that CHOS will
     # create appropriate /chos/${DIR} -> /local/${DIR} links
