@@ -75,6 +75,8 @@ _do_yum () {
             echo "Unsupported \$OS_FAMILY $OS_FAMILY"
             ;;
     esac
+
+    prune_locales "$_ROOT"
 }
 
 # Perform a bind mount of $1 on $2.
