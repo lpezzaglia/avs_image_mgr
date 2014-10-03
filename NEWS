@@ -1,3 +1,9 @@
+avs_image_mgr 0.12.5                 2014-10-03
+======================================
+ * Prune locales after every yum invocation.
+   This should prevent subsequent package installations
+   from placing unwanted locales in the image.
+
 avs_image_mgr 0.12.4                 2014-09-29
 ======================================
  * Immediately upgrade all packages after YUM repos have been
