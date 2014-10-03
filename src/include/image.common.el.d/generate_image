@@ -208,35 +208,6 @@ EOF
         libvolume_id libxml2-python pciutils \
         cyrus-sasl-lib logrotate
 
-
-    # Remove unnecessary locales, if requested
-    if [[ "$INSTALL_LOCALES" != "" ]]; then
-        echo "Removing locales not matching $INSTALL_LOCALES"
-        # %_install_langs does not seem to affect what is in the localedef
-        # file.  Remove unnecessary locales from the localedef file
-        for _LOCALE in $(in_target localedef --list-archive); do
-            _LOCALE_VALIDATED=0
-            for _OK_LOCALE in $(echo "$INSTALL_LOCALES" | tr ':' ' '); do
-                if [[ "$_LOCALE" == "$_OK_LOCALE" ]]; then
-                    _LOCALE_VALIDATED=1
-                fi 
-            done
-            if [ $_LOCALE_VALIDATED -eq 0 ]; then
-                in_target localedef --delete-from-archive "$_LOCALE"
-            fi
-        done
-
-        # Now, we need to install the new locale-archive file as
-        # locale-archive.tmpl, and run build-locale-archive to
-        # generate a much smaller locale-archive file.  Once this is
-        # done, we can remove locale-archive.tmpl
-        install -o root -g root -m 644 $IMGROOT/usr/lib/locale/locale-archive \
-            $IMGROOT/usr/lib/locale/locale-archive.tmpl
-        in_target build-locale-archive
-        rm -f $IMGROOT/usr/lib/locale/locale-archive.tmpl
-
-    fi
-
     # Remove any stale OFED modules from the image
     rm -rf $IMGROOT/lib/modules/*/extra/ofa_kernel
 
