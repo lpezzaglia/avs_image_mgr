@@ -271,15 +271,12 @@ sl-release
 util-linux-ng.${ARCH}
 EOF
 
-    case $OS_FAMILY in
-        el[56] ) 
-            ;;
-        el[7] ) 
-            cat << 'EOF'
-kernel
-redhat-release
-EOF
+
+    case $OS_MAJOR_VERSION in
+        SL7)
+            echo yum-conf-sl7x
             ;;
     esac
+
 }
 
