@@ -79,6 +79,9 @@ FSVS="_env_fsvs"
 # The path to the FSVS repository where images will be stored
 FSVS_REPOSITORY=""
 
+# The backend to use for image management
+IMAGE_BACKEND="xcat"
+
 GENIMAGE_PROVIDER="default"
 GPFS_CONFIG_SERVERS=""
 
