@@ -158,6 +158,12 @@ OS_RELEASE=""
 PACK_ON_COMPLETION=""
 PROFILE=""
 
+# Settings for the "rinse" image backend
+RINSE="/usr/bin/env rinse"
+RINSE_LIBDIR="/usr/lib/rinse"
+RINSE_SYSCONFDIR="/etc/rinse"
+RINSE_CONF="${RINSE_SYSCONFDIR}/rinse.conf"
+
 # The default size of the / tmpfs filesystem.
 # This must be large enough to accommodate the size of the image.
 ROOTSIZE="1024"

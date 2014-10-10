@@ -169,29 +169,43 @@ run_step () {
 
 pack_image() {
 
-    if [[ "$(egrep -v ':(\*|!!|x):' /etc/shadow | wc -l)" != 0 ]]; then
-        echo "Password hashes were found in /etc/shadow"
-        echo "packimage.pm may copy these hashes into the image."
-        echo "This is probably not what you want."
-        echo "The pack process will be aborted."
-        echo ""
-        echo "You must remove these hashes from /etc/shadow before"
-        echo "the pack process will succeed."
-        echo ""
-        echo "Note that /etc/shadow is read by the xcatd daemon,"
-        echo "so any changes must be made within the context visible"
-        echo "to xcatd."
-        false
-    fi
+    local _OUTPUT_AREA
 
-    EXTRACT_DIR=${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}.${TAG_NAME}/
+    case $IMAGE_METHOD in 
+        xcat )
+            if [[ "$(egrep -v ':(\*|!!|x):' /etc/shadow | wc -l)" != 0 ]]; then
+                echo "Password hashes were found in /etc/shadow"
+                echo "packimage.pm may copy these hashes into the image."
+                echo "This is probably not what you want."
+                echo "The pack process will be aborted."
+                echo ""
+                echo "You must remove these hashes from /etc/shadow before"
+                echo "the pack process will succeed."
+                echo ""
+                echo "Note that /etc/shadow is read by the xcatd daemon,"
+                echo "so any changes must be made within the context visible"
+                echo "to xcatd."
+                false
+            fi
+
+            _OUTPUT_AREA="${XCAT_NETBOOT_DIR}"
+            ;;
+        rinse )
+            _OUTPUT_AREA="${TMP_AREA}/_out/"
+            ;;
+        * )
+            fail "Unsupported \$IMAGE_METHOD $IMAGE_METHOD"
+            ;;
+    esac
+
+    EXTRACT_DIR="${_OUTPUT_AREA}/${IMAGE_OUTPUT_NAME}.${TAG_NAME}/"
     if [ -d $EXTRACT_DIR ]; then
         echo "${EXTRACT_DIR} already exists."
         echo "Please manually move it aside."
         false
     fi
 
-    mkdir ${EXTRACT_DIR}
+    mkdir -p ${EXTRACT_DIR}
     cd ${EXTRACT_DIR}
 
     echo "Checking out $TAG_PATH"
@@ -199,7 +213,7 @@ pack_image() {
     $FSVS sync-repos >/dev/null
     $FSVS co $TAG_PATH >/dev/null
 
-    cd ${XCAT_NETBOOT_DIR}
+    cd "${_OUTPUT_AREA}"
 
     if [ -d $IMAGE_OUTPUT_NAME ]; then
         mv $IMAGE_OUTPUT_NAME ${IMAGE_OUTPUT_NAME}.moved.aside.on.$(date +%Y-%m-%d-%H-%M-%S)
@@ -221,9 +235,18 @@ pack_image() {
         cd "$_OLDWD"
     fi
 
-    echo "Running packimage"
-    packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
-    echo "Packimage completed"
+    case $IMAGE_METHOD in 
+        xcat )
+            echo "Running packimage"
+            packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
+            echo "Packimage completed"
+            ;;
+        rinse )
+            echo -n "Packing image..."
+            cd ./rootimg/ && find . | cpio -oHcrc | gzip > ../rootimg.cpio.gz && cd -
+            echo "done."
+            ;;
+    esac
 }
 
 xcat_image_metadata() {

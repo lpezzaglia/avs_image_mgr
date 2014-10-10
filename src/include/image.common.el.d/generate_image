@@ -35,6 +35,9 @@ generate_image() {
     local _PKGLIST
     local _ROOTIMGDIR
 
+    local _TMP_RINSE_SYSCONFDIR
+    local _TMP_RINSE_LIBDIR
+
     case $IMAGE_BACKEND in
         xcat )
             # Gather information about this image from xCAT
@@ -57,7 +60,20 @@ generate_image() {
             fi
             ;;
         rinse )
-            true
+            _TMP_RINSE_SYSCONFDIR="$(mktemp -d ${TMP_AREA}/image_mgr.rinse_confdir.XXXXXXXXXX)" 
+            _TMP_RINSE_LIBDIR="$(mktemp -d ${TMP_AREA}/image_mgr.rinse_libdir.XXXXXXXXXX)" 
+
+            bind_mount "$_TMP_RINSE_SYSCONFDIR" "$RINSE_SYSCONFDIR"
+            bind_mount "$_TMP_RINSE_LIBDIR" "$RINSE_LIBDIR"
+
+            _PKGLIST="${RINSE_SYSCONFDIR}/image_mgr.packages"
+            sed -i 's/\.'${ARCH}'//g' "$_TMP_PKGLIST"
+            sed -i 's/^-.*$//g' "$_TMP_PKGLIST"
+            sed -i 's/^kernel.*$//g' "$_TMP_PKGLIST"
+
+            cat "$_TMP_PKGLIST"
+
+            _ROOTIMGDIR="${TMP_AREA}/_world"
             ;;
         * )
             fail "Unsupported \$IMAGE_BACKEND $IMAGE_BACKEND"
@@ -67,6 +83,9 @@ generate_image() {
 
     # Mount our build area at the image root location
     bind_mount $IMG_BASE_DIR $_ROOTIMGDIR
+
+    # Mount the provided pkglist at the target pkglist location
+    bind_mount $_TMP_PKGLIST $_PKGLIST
 
     # Check that the image location now only contains 4 items: .
     # .. markers and rootimg
@@ -102,12 +121,10 @@ generate_image() {
 
     case $IMAGE_BACKEND in
         xcat )
-            # Mount the provided pkglist at the xCAT pkglist location
-            bind_mount $_TMP_PKGLIST $_PKGLIST
             generate_image_xcat "$_ROOTIMGDIR" "$_PKGLIST"
             ;;
         rinse )
-            generate_image_rinse
+            generate_image_rinse "$_ROOTIMGDIR" "$_PKGLIST"
             ;;
     esac
 
@@ -266,6 +283,18 @@ EOF
     esac
 
 
+}
+
+# Print a URL pointing to packages for $OS
+pkg_url () {
+    case $OS_MAJOR_VERSION in
+        SL* )
+            echo "http://ftp.scientificlinux.org/linux/scientific/${OS_RELEASE}/x86_64/os/Packages/"
+            ;;
+        * )
+            fail "Unsupported \$OS_MAJOR_VERSION $OS_MAJOR_VERSION"
+        ;;
+    esac
 }
 
 # Print the most minimal pkglist possible for this image type
