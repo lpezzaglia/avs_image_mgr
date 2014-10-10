@@ -171,7 +171,7 @@ pack_image() {
 
     local _OUTPUT_AREA
 
-    case $IMAGE_METHOD in 
+    case $IMAGE_BACKEND in 
         xcat )
             if [[ "$(egrep -v ':(\*|!!|x):' /etc/shadow | wc -l)" != 0 ]]; then
                 echo "Password hashes were found in /etc/shadow"
@@ -194,7 +194,7 @@ pack_image() {
             _OUTPUT_AREA="${TMP_AREA}/_out/"
             ;;
         * )
-            fail "Unsupported \$IMAGE_METHOD $IMAGE_METHOD"
+            fail "Unsupported \$IMAGE_BACKEND $IMAGE_BACKEND"
             ;;
     esac
 
@@ -208,10 +208,13 @@ pack_image() {
     mkdir -p ${EXTRACT_DIR}
     cd ${EXTRACT_DIR}
 
-    echo "Checking out $TAG_PATH"
-    echo $TAG_PATH | $FSVS urls load
+    echo -n "Checking out $TAG_PATH... "
+    echo $TAG_PATH | $FSVS urls load >/dev/null
     $FSVS sync-repos >/dev/null
     $FSVS co $TAG_PATH >/dev/null
+    echo "done"
+
+    echo "Packing into ${EXTRACT_DIR}:"
 
     cd "${_OUTPUT_AREA}"
 
@@ -219,32 +222,38 @@ pack_image() {
         mv $IMAGE_OUTPUT_NAME ${IMAGE_OUTPUT_NAME}.moved.aside.on.$(date +%Y-%m-%d-%H-%M-%S)
     fi
 
-    ln -s $EXTRACT_DIR $IMAGE_OUTPUT_NAME
-    cd $IMAGE_OUTPUT_NAME/
+    ln -s "$EXTRACT_DIR" "$IMAGE_OUTPUT_NAME"
+    cd "$IMAGE_OUTPUT_NAME/"
 
     # Pack addons
     if [ -d ./addons ]; then
         _OLDWD="$(pwd)"
 
         cd ./addons/
-        for _ADDON in *; do
-            echo -n "Packing addon $_ADDON... "
-            cd $_ADDON && find . | cpio -oHcrc | gzip > ../${_ADDON}.cpio.gz && cd -
-            echo "done."
+
+        local _ADDONS="$(echo *)"
+        local _ADDON_COUNT="$(echo "$_ADDONS" | wc -w)"
+
+        local _COUNTER=0
+
+        for _ADDON in $_ADDONS; do
+            _COUNTER=$((${_COUNTER}+1))
+            echo -n "Packing addon ${_COUNTER}/${_ADDON_COUNT} ($_ADDON)... "
+            cd $_ADDON && find . | cpio -oHcrc | gzip > ../${_ADDON}.cpio.gz && cd - >/dev/null
         done
         cd "$_OLDWD"
     fi
 
-    case $IMAGE_METHOD in 
+    case $IMAGE_BACKEND in 
         xcat )
             echo "Running packimage"
             packimage -a ${ARCH} -p $IMAGE_OUTPUT_NAME -o ${OS}
             echo "Packimage completed"
             ;;
         rinse )
-            echo -n "Packing image..."
-            cd ./rootimg/ && find . | cpio -oHcrc | gzip > ../rootimg.cpio.gz && cd -
-            echo "done."
+            echo -n "Packing image... "
+            cd ./rootimg/ && find . | cpio -oHcrc | gzip > ../rootimg.cpio.gz && cd - >/dev/null
+            IMGGZ="${EXTRACT_DIR}/rootimg.cpio.gz"
             ;;
     esac
 }

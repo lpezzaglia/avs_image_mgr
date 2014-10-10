@@ -353,7 +353,7 @@ check_args_pack () {
         echo "Masquerade as: ${IMAGE_OUTPUT_NAME}"
     fi
     echo
-    echo "${TAG_PATH} will be packed into ${XCAT_NETBOOT_DIR}/${IMAGE_OUTPUT_NAME}/"
+    echo "${TAG_PATH} will be packed for the ${IMAGE_BACKEND} backend"
 }
 
 check_args_create () {
