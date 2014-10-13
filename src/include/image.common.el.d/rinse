@@ -38,18 +38,18 @@ generate_image_rinse () {
 mirror.x86_64 = $(pkg_url)
 EOF
 
-    rinse --verbose --distribution image_mgr --arch $ARCH --directory "${_ROOTIMGDIR}/rootimg/"
-
-    # Remove undesired yum and kernel RPMs
-    rm -f "${_ROOTIMGDIR}"/rootimg/yum*rpm
-    rm -f "${_ROOTIMGDIR}"/rootimg/kernel*rpm
+    rinse \
+        --verbose \
+        --cache 0 \
+        --distribution image_mgr \
+        --arch $ARCH \
+        --directory "${_ROOTIMGDIR}/rootimg/"
 
     # Install the RPMs provided by rinse
     # This is necessary since we are running without rinse's default
     # post-install scripts.
     $YUM install "${_ROOTIMGDIR}"/rootimg/*rpm
 
-    # Remove the remaining RPMs
+    # Remove the RPMs put in place by rinse
     rm -f "${_ROOTIMGDIR}"/rootimg/*rpm
-
 }
