@@ -109,11 +109,27 @@ setup_disable_selinux () {
 }
 
 setup_fstab () {
-    # Set the contents of the device field for / in fstab to $DATESTAMP
-    # This must be no more than 20 characters to avoid an extra line
-    # break in the "df" output
-    cat > $IMGROOT/etc/fstab << EOF
+
+case $IMAGE_BACKEND in
+
+    xcat )
+        # Set the contents of the device field for / in fstab to $DATESTAMP
+        # This must be no more than 20 characters to avoid an extra line
+        # break in the "df" output
+        cat > $IMGROOT/etc/fstab << EOF
 $DATESTAMP / tmpfs rw 0 1
+EOF
+        ;;
+    rinse )
+        cat > $IMGROOT/etc/fstab << EOF
+${DISK_BOOT_PARTITION}                               /boot   $DISK_BOOT_FS    0 2
+/dev/mapper/vg_${DATESTAMP}-root        /       $DISK_ROOT_FS    0 2
+EOF
+        ;;
+esac
+
+
+    cat >> $IMGROOT/etc/fstab << EOF
 tmpfs /tmp tmpfs rw,size=${ROOTSIZE}M 0 0
 tmpfs /var/log tmpfs rw,size=512M 0 0
 proc /proc proc rw 0 0

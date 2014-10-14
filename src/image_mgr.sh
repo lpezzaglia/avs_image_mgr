@@ -73,6 +73,11 @@ DIFF_OLD_REVISION=""
 DIFF_NEW_REVISION=""
 DIFF_SCRATCH_DIR=""
 
+# Set the filesystem type for disk installations (under supporting
+# backends)
+DISK_BOOT_PARTITION="/dev/sda1"
+DISK_BOOT_FS="ext4"
+DISK_ROOT_FS="ext4"
 
 FSVS="_env_fsvs"
 
