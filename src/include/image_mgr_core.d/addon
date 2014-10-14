@@ -26,6 +26,8 @@ make_addon() {
         return 0
     fi
 
+    echo -n "[addon] $ADDON_NAME (prep... "
+
     # Unmount the bind mounts in the image building area
     umount_fs || /bin/true
 
@@ -48,16 +50,15 @@ make_addon() {
     [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
 
     # Copy the current image to the addon building area
-    echo -n "[ ] Copying the current image to the addon building area... "
     rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
-    echo "done"
+    echo -n "done) "
 
     mkdir ${ADDONROOT}/export/
     ln -s /data ${ADDONROOT}/export/data
     # Modify the copy of the image
-    echo "[+] BEGIN: $ADDON_NAME (log: $_LOG)"
+    echo -n "(log: \$LOG_DIR/$(basename "$_LOG"))... "
     _create_addon_${ADDON_NAME} > "$_LOG"
-    echo "[-] END: $ADDON_NAME"
+    echo -n "done ) (post... "
 
     # Apply module signing, if requested
     if [[ -z $KERNEL_MODULE_SIGNING_KEY ]]; then
@@ -122,5 +123,5 @@ make_addon() {
    
     ADDONROOT=""
 
-    echo "[ ] Completed addon $ADDON_NAME ($(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
+    echo " $(wc -l ${IMGMANIFEST} | cut -d' ' -f1 ) entries)"
 }

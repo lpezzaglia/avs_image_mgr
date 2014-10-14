@@ -386,12 +386,14 @@ check_args_create () {
     echo "OS: ${OS} (Kernel: $KERNEL)"
     echo "Arch: ${ARCH}"
     echo "Profile: ${PROFILE}"
+    echo "Backend : ${IMAGE_BACKEND}"
     if [ ! -z "${MASQUERADE_IMAGE}" ]; then
         echo "Masquerade as: ${MASQUERADE_IMAGE}"
     fi
     echo "User name: ${USER_NAME}"
     echo "Commit message: ${COMMIT_MESSAGE}"
     echo
+    echo "Log directory: ${LOG_DIR}"
     echo "Output will be committed to: ${FSVS_REPOSITORY}/trunk/"
     if [ ! -z "${ATTEMPT_RESUME}" ]; then
         echo "Will attempt to resume a previous build (-b flag passed)"

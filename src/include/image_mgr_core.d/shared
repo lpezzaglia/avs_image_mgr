@@ -129,7 +129,7 @@ run_step () {
     fi
 
     RPM_QUERY="rpm --root $IMGROOT -qa --qf '%{NAME}-%{VERSION}-%{ARCH}\n'"
-    echo "[+] BEGIN: $_STEP_NAME (log: $_LOG)"
+    echo -n "[+] $_STEP_NAME (log: \$LOG_DIR/$(basename "$_LOG"))... "
     if [ ! -f $COMPLETION_MARKER ]; then
         if [ -d ${MARKER_DIR} ]; then
             if [ -d $IMGROOT/var/lib/rpm ]; then
@@ -162,7 +162,7 @@ run_step () {
     else
         echo "[=] $_STEP_NAME already finished"
     fi
-    echo "[-] END: $_STEP_NAME"
+    echo " done"
 }
 
 
