@@ -21,6 +21,8 @@
 # publicly, and to permit others to do so.
 
 make_addon() {
+    ADDON_NAME="$1"; shift
+
     if [[ ! -z "$BASE_ONLY" ]]; then
         # Addon creation is disabled
         return 0
@@ -30,8 +32,6 @@ make_addon() {
 
     # Unmount the bind mounts in the image building area
     umount_fs || /bin/true
-
-    ADDON_NAME="$1"; shift
 
     _LOG=$(mklog "${ADDON_NAME}.stdout")
 
