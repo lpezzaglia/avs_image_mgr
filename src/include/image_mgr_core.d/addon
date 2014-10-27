@@ -40,6 +40,9 @@ make_addon() {
     ADDONTMP=$(mktemp -d ${BASE}/image.addontmp.XXXXXXXX)
     ADDONDEST=${IMG_BASE_DIR}/addons/${ADDON_NAME}
     ADDONROOT=${ADDONSCRATCH}
+
+    local _ADDONROOT_BACKING="$(mktemp "${TMP_AREA}/${ADDON_NAME}.backing.XXXXXXXX")"
+
     IMGSCRATCHMANIFEST=${ADDONTMP}/IMG_SCRATCH_MANIFEST
     IMGMANIFEST=${ADDONTMP}/IMG_MANIFEST
     ADDONSCRATCHMANIFEST=${ADDONTMP}/IMG_ADDON_MANIFEST
@@ -48,6 +51,12 @@ make_addon() {
     [ -d $ADDONROOT ] || mkdir -p $ADDONROOT
     [ -d $ADDONDEST ] || mkdir -p $ADDONDEST
     [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
+
+    # Create a temporary filesystem to use as the addon scratch area
+    dd if=/dev/zero of="${_ADDONROOT_BACKING}" \
+        bs=1M count=1 seek=10240 >/dev/null
+    mkfs.ext4 -F "${_ADDONROOT_BACKING}" >/dev/null
+    mount -oloop "${_ADDONROOT_BACKING}" "${ADDONROOT}"
 
     # Copy the current image to the addon building area
     rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
@@ -119,7 +128,8 @@ make_addon() {
     cd $ADDONDEST && find . > ${ADDONMANIFEST}
 
     # Clean up the addon building area
-    rm --one-file-system -rf "${ADDONROOT}"
+    umount "${ADDONROOT}"
+    rm -f "${_ADDONROOT_BACKING}"
    
     ADDONROOT=""
 
