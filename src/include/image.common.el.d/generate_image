@@ -27,6 +27,8 @@
 # generate_image_backend.
 generate_image() {
 
+    bind_mount "$(mktemp -d ${TMP_AREA}/image_mgr.XXXXXXXXXX)" /etc/yum.repos.d
+
     # Create a minimal list of packages
     local _TMP_PKGLIST="$(mktemp ${TMP_AREA}/image_mgr.XXXXXXXXXX)"
     print_minimal_pkglist > $_TMP_PKGLIST
@@ -288,8 +290,11 @@ EOF
 # Print a URL pointing to packages for $OS
 pkg_url () {
     case $OS_MAJOR_VERSION in
-        SL* )
-            echo "http://ftp.scientificlinux.org/linux/scientific/${OS_RELEASE}/x86_64/os/Packages/"
+        SL5 )
+            echo "http://ftp.scientificlinux.org/linux/scientific/$(echo ${OS_RELEASE}|tr -d '.')/${ARCH}/SL/"
+            ;;
+        SL[67] )
+            echo "http://ftp.scientificlinux.org/linux/scientific/${OS_RELEASE}/${ARCH}/os/Packages/"
             ;;
         * )
             fail "Unsupported \$OS_MAJOR_VERSION $OS_MAJOR_VERSION"
@@ -341,10 +346,99 @@ EOF
 
 
     case $OS_MAJOR_VERSION in
+        SL5)
+            echo yum-conf-$(echo $OS_RELEASE | tr -d '.')
+            echo yum-conf-sl5x
+            echo rpm.${ARCH}
+            cat << EOF
+MAKEDEV
+SysVinit
+audit-libs
+basesystem
+bash
+beecrypt
+bzip2-libs
+centos-release
+coreutils
+cracklib
+cracklib-dicts
+db4
+device-mapper
+e2fsprogs
+elfutils-libelf
+e2fsprogs-libs
+ethtool
+expat
+filesystem
+findutils
+gawk
+gdbm
+glib2
+glibc
+glibc-common
+grep
+info
+initscripts
+iproute
+iputils
+krb5-libs
+libacl
+libattr
+libcap
+libgcc
+libidn
+libselinux
+libsepol
+libstdc++
+libsysfs
+libtermcap
+libxml2
+libxml2-python
+mcstrans
+mingetty
+mktemp
+module-init-tools
+ncurses
+neon
+net-tools
+nss
+nspr
+openssl
+pam
+pcre
+popt
+procps
+psmisc
+python
+python-elementtree
+python-libs
+python-sqlite
+python-urlgrabber
+python-iniparse
+python-libs
+readline
+rpm
+rpm-libs
+rpm-python
+sed
+setup
+shadow-utils
+sqlite
+sysklogd
+termcap
+tzdata
+udev
+util-linux
+yum
+yum-metadata-parser
+zlib
+EOF
+            ;;
         SL7)
             echo yum-conf-sl7x
             ;;
     esac
+
 
 }
 

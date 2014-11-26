@@ -80,9 +80,33 @@ _do_yum () {
 }
 
 # Perform a bind mount of $1 on $2.
-# Create the target if it does not exist
 # bind_mount <source> <target>
 bind_mount () {
+    _mount bind "$1" "$2"
+}
+
+# Perform a bind mount of $1 on $2.
+# bind_mount <source> <target>
+loop_mount () {
+    _LOOP_MOUNTS="$_LOOP_MOUNTS $2"
+    _mount loop "$1" "$2"
+}
+
+# Attempt to unmount all loop devices in $_LOOP_MOUNTS
+loop_umount_all () {
+    cd /tmp/
+    for _LOOP_MOUNT in $_LOOP_MOUNTS; do
+        umount -d $_LOOP_MOUNT &>/dev/null || /bin/true
+    done
+    cd -
+}
+
+# Perform a mount of type $1 of $2 on $3
+# Create the target if it does not exist
+# _mount [type] [source] [target]
+_mount () {
+    _TYPE="$1"
+    shift
     _SOURCE="$1"
     shift
     _TARGET="$1"
@@ -104,7 +128,7 @@ bind_mount () {
         fi
     }
 
-    mount -obind "$_SOURCE" "$_TARGET"
+    mount -o "${_TYPE}" "$_SOURCE" "$_TARGET"
 }
 
 

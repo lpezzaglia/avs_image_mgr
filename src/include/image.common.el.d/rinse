@@ -35,7 +35,7 @@ generate_image_rinse () {
     # configuration area.
     cat >> "$RINSE_CONF" << EOF
 [image_mgr]
-mirror.x86_64 = $(pkg_url)
+mirror.${ARCH} = $(pkg_url)
 EOF
 
     rinse \
@@ -44,6 +44,21 @@ EOF
         --distribution image_mgr \
         --arch $ARCH \
         --directory "${_ROOTIMGDIR}/rootimg/"
+
+    case $OS_MAJOR_VERSION in
+        SL5 )
+            {
+            cd "${_ROOTIMGDIR}/rootimg/"
+            wget http://mirror.mcs.anl.gov/pub/scientific-linux/55/x86_64/SL/yum-conf-55-1.SL.noarch.rpm -O conf.rpm
+            rpm2cpio conf.rpm | cpio -idv
+            cd -
+            }
+            ;;
+    esac
+
+    ls -l "${_ROOTIMGDIR}/rootimg/var/lib/"
+    mkdir -p "${_ROOTIMGDIR}/rootimg/var/lib/rpm"
+    in_target rpm --initdb
 
     # Install the RPMs provided by rinse
     # This is necessary since we are running without rinse's default

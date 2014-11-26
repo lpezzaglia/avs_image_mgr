@@ -106,6 +106,7 @@ provide_additional_package_list () {
 }
 
 setup_additional_packages () {
+    $YUM clean all
     $YUM install $(provide_additional_package_list)
 }
 

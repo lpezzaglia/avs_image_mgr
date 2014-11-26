@@ -31,7 +31,7 @@ make_addon() {
     echo -n "[addon] $ADDON_NAME (prep... "
 
     # Unmount the bind mounts in the image building area
-    umount_fs || /bin/true
+    umount_fs || /bin/true 
 
     _LOG=$(mklog "${ADDON_NAME}.stdout")
 
@@ -51,18 +51,24 @@ make_addon() {
     [ -d $ADDONROOT ] || mkdir -p $ADDONROOT
     [ -d $ADDONDEST ] || mkdir -p $ADDONDEST
     [ -d ${IMGROOT}/etc/addons/ ] || mkdir -p ${IMGROOT}/etc/addons
-
-    # Create a temporary filesystem to use as the addon scratch area
-    dd if=/dev/zero of="${_ADDONROOT_BACKING}" \
-        bs=1M count=1 seek=10240 >/dev/null
-    mkfs.ext4 -F "${_ADDONROOT_BACKING}" >/dev/null
-    mount -oloop "${_ADDONROOT_BACKING}" "${ADDONROOT}"
-
-    # Copy the current image to the addon building area
-    rsync -aSHx ${IMGROOT}/ ${ADDONROOT}/
     echo -n "done) "
 
-    mkdir ${ADDONROOT}/export/
+    echo -n "(scratch $_ADDONROOT_BACKING ... "
+    # Create a temporary filesystem to use as the addon scratch area
+    dd if=/dev/zero of="${_ADDONROOT_BACKING}" \
+        bs=1M count=1 seek=10240 &>/dev/null
+    mkfs.ext4 -qF "${_ADDONROOT_BACKING}" &>/dev/null
+    loop_mount "${_ADDONROOT_BACKING}" "${ADDONROOT}"
+
+    echo -n "done) "
+
+    echo -n "(sync... "
+    # Copy the current image to the addon building area
+    rsync -aSHx --exclude=export ${IMGROOT}/ ${ADDONROOT}/
+    echo -n "done) "
+
+    mkdir "${ADDONROOT}/export/" 
+
     ln -s /data ${ADDONROOT}/export/data
     # Modify the copy of the image
     echo -n "(log: \$LOG_DIR/$(basename "$_LOG"))... "
@@ -128,7 +134,7 @@ make_addon() {
     cd $ADDONDEST && find . > ${ADDONMANIFEST}
 
     # Clean up the addon building area
-    umount "${ADDONROOT}"
+    umount -d "${ADDONROOT}"
     rm -f "${_ADDONROOT_BACKING}"
    
     ADDONROOT=""

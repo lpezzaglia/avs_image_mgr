@@ -203,6 +203,10 @@ YUM_EXTRA_ARGS="-d 1"
 BASE="${IMAGE_MGR_BASE}/_build.builddir/"
 
 
+
+# List of any active loop mounts
+_LOOP_MOUNTS=""
+
 cd "$IMAGE_MGR_SCRIPT_DIR"
 IMAGE_MGR="$(pwd)/$(basename "$0")"
 
@@ -220,6 +224,7 @@ LOG_DIR="$(mktemp -d "${LOG_BASE_DIR}/log.$(date +%Y-%m-%d-%H-%M-%S).XXXXX")"
 # Import all functions
 image_mgr_prep "$@"
 
+_IMGROOT_BACKING="${BASE}/_build.backing.img"
 
 # Begin the image build
 image_mgr_main "$@"

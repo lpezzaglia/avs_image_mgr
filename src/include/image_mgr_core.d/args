@@ -159,6 +159,10 @@ check_args_common () {
             OS_FAMILY=el6
             OS_RELEASE=6.${OS_RELEASE}
             ;;
+        SL5 )
+            OS_FAMILY=el5
+            OS_RELEASE=5.${OS_RELEASE}
+            ;;
         fedora )
             case $OS_RELEASE in
                 18 )

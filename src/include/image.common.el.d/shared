@@ -66,6 +66,7 @@ metadata_expire=72000
 tolerant=0
 exactarch=1
 plugins=1
+http_caching=packages
 EOF
 
     # Do not install 32-bit RPMS.
@@ -73,10 +74,10 @@ EOF
 
     case $OS_FAMILY in
         el5 ) 
-            rm -rf $IMGROOT/etc/yum.repos.d
-            $YUM clean all
-            cp -a /etc/yum.repos.d/ $IMGROOT/etc/
-            rm -rf $IMGROOT/etc/yum.repos.d/xCAT-*
+            #rm -rf $IMGROOT/etc/yum.repos.d
+            #$YUM clean all
+            #cp -a /etc/yum.repos.d/ $IMGROOT/etc/
+            #rm -rf $IMGROOT/etc/yum.repos.d/xCAT-*
             rpm --root $IMGROOT -Uvh http://dl.fedoraproject.org/pub/epel/5/i386/epel-release-5-4.noarch.rpm
             ;;
         el6 ) 

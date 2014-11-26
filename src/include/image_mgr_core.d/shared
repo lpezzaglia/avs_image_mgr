@@ -22,7 +22,7 @@
 
 
 umount_fs () {
-    echo
+    echo -n
 }
 
 error () {
@@ -95,7 +95,20 @@ prep_build_dir () {
         BASE_DIR_NAME="$(echo "$(dirname "$BASE")"/"$(basename "$BASE")")"
         mv ${BASE_DIR_NAME} $(mktemp -d ${BASE_DIR_NAME}.XXXXXXXX)
     fi
+
     mkdir -p $IMGROOT
+    _IMGROOT_BACKING="${BASE}/_build.backing.img"
+
+    if [ ! -e "${_IMGROOT_BACKING}" ]; then
+        dd if=/dev/zero of="${_IMGROOT_BACKING}" \
+            bs=1M count=1 seek=10240 &>/dev/null
+        mkfs.ext4 -qF "${_IMGROOT_BACKING}" &>/dev/null
+    fi
+    loop_mount "${_IMGROOT_BACKING}" "${BASE}/install"
+
+    echo "Backing file is ${_IMGROOT_BACKING}"
+
+
     mkdir -p ${IMGROOT}/../markers/
 }
 
@@ -116,12 +129,6 @@ run_step () {
 
     if [ -z "$ATTEMPT_RESUME" ]; then
         rm -f ${COMPLETION_MARKER}*
-    else
-        echo
-        echo
-        echo "[=] Attempting to resume previous build"
-        echo
-        echo
     fi
 
     if [ ! -d $MARKER_DIR ]; then
@@ -159,10 +166,10 @@ run_step () {
             $RPM_QUERY > ${COMPLETION_MARKER}.rpms-post
         fi
         touch $COMPLETION_MARKER
+        echo " done"
     else
-        echo "[=] $_STEP_NAME already finished"
+        echo " (skipping)"
     fi
-    echo " done"
 }
 
 
@@ -374,7 +381,11 @@ image_mgr_main() {
     img_main "$@" 2>&1 | tee -a $__IMG_MGR_LOG
     subshell_dec
 
-    return ${PIPESTATUS[0]}
+    local _STATUS=${PIPESTATUS[0]}
+
+    loop_umount_all
+
+    return $_STATUS
 }
 
 subshell_inc() {
