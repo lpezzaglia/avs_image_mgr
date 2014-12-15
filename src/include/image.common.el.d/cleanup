@@ -169,7 +169,16 @@ cleanup () {
 }
 
 check_kernel_symbols() {
-    ERRS="$(in_target depmod -ae $(kernel_variant) -F /boot/System.map-$(kernel_variant) 2>&1)"
+
+    local _DEPMOD_KERNEL="$(kernel_variant)"
+
+    case $OS_FAMILY in
+        el5 ) 
+            _DEPMOD_KERNEL="$(echo $_DEPMOD_KERNEL | sed -e 's/.'${ARCH}'//')"
+            ;;
+    esac
+
+    ERRS="$(in_target depmod -ae "$_DEPMOD_KERNEL" -F /boot/System.map-"$_DEPMOD_KERNEL" >&2)"
 
     if [ ! -z "$ERRS" ]; then
         echo "$ERRS"
