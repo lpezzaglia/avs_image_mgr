@@ -56,15 +56,29 @@ EOF
             ;;
     esac
 
-    ls -l "${_ROOTIMGDIR}/rootimg/var/lib/"
-    mkdir -p "${_ROOTIMGDIR}/rootimg/var/lib/rpm"
-    in_target rpm --initdb
+    target_mkdir /var/lib/rpm
+
+    rm -f "${_ROOTIMGDIR}/rootimg/var/lib/rpm/"*
+
+    $RPM --initdb
+    $RPM --rebuilddb
+
+    touch "${_ROOTIMGDIR}/rootimg/etc/mtab"
 
     # Install the RPMs provided by rinse
     # This is necessary since we are running without rinse's default
     # post-install scripts.
-    $YUM install "${_ROOTIMGDIR}"/rootimg/*rpm
+    $RPM -i --nodeps \''/*rpm'\'
+    $YUM clean all
+    $YUM update
+    $YUM check
+
+    $YUM upgrade "${_ROOTIMGDIR}"/rootimg/*rpm
 
     # Remove the RPMs put in place by rinse
     rm -f "${_ROOTIMGDIR}"/rootimg/*rpm
+
+    # Ensure no kernel package is installed
+    $RPM -e --nodeps kernel &>/dev/null || /bin/true
+
 }

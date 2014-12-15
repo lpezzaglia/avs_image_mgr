@@ -172,6 +172,7 @@ RINSE_CONF="${RINSE_SYSCONFDIR}/rinse.conf"
 # The default size of the / tmpfs filesystem.
 # This must be large enough to accommodate the size of the image.
 ROOTSIZE="1024"
+RPM=""
 
 STAMP=""
 SVNHOST=""
@@ -204,8 +205,8 @@ BASE="${IMAGE_MGR_BASE}/_build.builddir/"
 
 
 
-# List of any active loop mounts
-_LOOP_MOUNTS=""
+# List of any active mounts
+_MOUNTS=""
 
 cd "$IMAGE_MGR_SCRIPT_DIR"
 IMAGE_MGR="$(pwd)/$(basename "$0")"

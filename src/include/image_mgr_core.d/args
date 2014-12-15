@@ -378,6 +378,7 @@ check_args_create () {
 
     IMG_BASE_DIR=${BASE}/install/netboot/$OS/$ARCH/$PROFILE/
     IMGROOT=${IMG_BASE_DIR}/rootimg
+    RPM="_do_rpm"
     YUM="_do_yum"
     INSTALL="_do_install"
     INSTALL_ROOT="_do_install -o root -g root"

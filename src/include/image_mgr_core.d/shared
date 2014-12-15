@@ -383,7 +383,7 @@ image_mgr_main() {
 
     local _STATUS=${PIPESTATUS[0]}
 
-    loop_umount_all
+    _umount_all
 
     return $_STATUS
 }

@@ -140,12 +140,12 @@ generate_image() {
     # http://lists.centos.org/pipermail/centos/2009-April/075627.html
     #
     case $OS_FAMILY in
-        el[56] ) 
+        el6 ) 
             # Removing util-linux-ng with yum and %_excludedocs set appears
             # not to work; use the "rpm" utility instead until a solution can
             # be found
             $YUM install rpm
-            in_target rpm -e --nodeps util-linux-ng
+            $RPM -e --nodeps util-linux-ng
             $YUM remove rpm
             ;;
     esac
@@ -351,22 +351,28 @@ EOF
             echo yum-conf-sl5x
             echo rpm.${ARCH}
             cat << EOF
-MAKEDEV
-SysVinit
 audit-libs
 basesystem
 bash
 beecrypt
+binutils
 bzip2-libs
 centos-release
+chkconfig
 coreutils
+cpio
 cracklib
 cracklib-dicts
+crontabs
 db4
 device-mapper
+device-mapper-event
+device-mapper-multipath
+dmraid
+dmraid-events
 e2fsprogs
-elfutils-libelf
 e2fsprogs-libs
+elfutils-libelf
 ethtool
 expat
 filesystem
@@ -377,11 +383,17 @@ glib2
 glibc
 glibc-common
 grep
+gzip
+hmaccalc
 info
 initscripts
 iproute
 iputils
+keyutils-libs
+keyutils-libs-devel
+kpartx
 krb5-libs
+less
 libacl
 libattr
 libcap
@@ -394,15 +406,21 @@ libsysfs
 libtermcap
 libxml2
 libxml2-python
+logrotate
+lvm2
+m2crypto
+MAKEDEV
 mcstrans
 mingetty
+mkinitrd
 mktemp
 module-init-tools
+nash
 ncurses
 neon
 net-tools
-nss
 nspr
+nss
 openssl
 pam
 pcre
@@ -411,25 +429,29 @@ procps
 psmisc
 python
 python-elementtree
+python-iniparse
+python-libs
 python-libs
 python-sqlite
 python-urlgrabber
-python-iniparse
-python-libs
 readline
 rpm
 rpm-libs
 rpm-python
 sed
 setup
+sgpio
 shadow-utils
 sqlite
 sysklogd
+SysVinit
+tar
 termcap
 tzdata
 udev
 util-linux
 yum
+yum-autoupdate
 yum-metadata-parser
 zlib
 EOF

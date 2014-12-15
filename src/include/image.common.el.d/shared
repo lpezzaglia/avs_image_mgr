@@ -267,6 +267,9 @@ prune_locales() {
 
     local _ROOT="$1"
 
+    [ -f "${_ROOT}/usr/lib/locale/locale-archive" ] || \
+        in_target build-locale-archive
+
     if [[ "$INSTALL_LOCALES" != "" ]]; then
         echo "Removing locales not matching $INSTALL_LOCALES"
         # %_install_langs does not seem to affect what is in the localedef

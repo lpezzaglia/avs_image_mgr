@@ -21,15 +21,17 @@
 # publicly, and to permit others to do so.
 
 target_mkdir () {
-    if [ -z "$ADDONROOT" ]; then
-        _ROOT="${IMGROOT}"
-    else
-        _ROOT="${ADDONROOT}"
-    fi
-
-    TARGET_DIR="${_ROOT}/${1}"
+    TARGET_DIR="$(_rootdir)/${1}"
 
     [ -d "${TARGET_DIR}" ] || mkdir -p "${TARGET_DIR}"
+}
+
+_rootdir () {
+    if [ -z "$ADDONROOT" ]; then
+        echo "${IMGROOT}"
+    else
+        echo "${ADDONROOT}"
+    fi
 }
 
 _do_install () {
@@ -57,12 +59,12 @@ _do_install () {
     install -o "${_OWNER}" -g "${_GROUP}" -m "${_MODE}" "${_SRC}" "${_DEST}"
 }
 
+_do_rpm () {
+    rpm --dbpath "$(_rootdir)/var/lib/rpm/" "$@"
+}
+
 _do_yum () {
-    if [ -z "$ADDONROOT" ]; then
-        _ROOT="${IMGROOT}"
-    else
-        _ROOT="${ADDONROOT}"
-    fi
+    _ROOT="$(_rootdir)"
 
     case $OS_FAMILY in
         el5 ) 
@@ -82,21 +84,22 @@ _do_yum () {
 # Perform a bind mount of $1 on $2.
 # bind_mount <source> <target>
 bind_mount () {
+    _MOUNTS="$_MOUNTS $2"
     _mount bind "$1" "$2"
 }
 
 # Perform a bind mount of $1 on $2.
 # bind_mount <source> <target>
 loop_mount () {
-    _LOOP_MOUNTS="$_LOOP_MOUNTS $2"
+    _MOUNTS="$_MOUNTS $2"
     _mount loop "$1" "$2"
 }
 
-# Attempt to unmount all loop devices in $_LOOP_MOUNTS
-loop_umount_all () {
+# Attempt to unmount all devices in $_MOUNTS
+_umount_all () {
     cd /tmp/
-    for _LOOP_MOUNT in $_LOOP_MOUNTS; do
-        umount -d $_LOOP_MOUNT &>/dev/null || /bin/true
+    for _MOUNT in $_MOUNTS; do
+        umount -d $_MOUNT || /bin/true
     done
     cd -
 }

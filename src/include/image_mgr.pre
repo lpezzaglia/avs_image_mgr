@@ -36,8 +36,8 @@ hr() {
 }
 
 fail () {
-    # Unmount any loop mounts
-    loop_umount_all
+    # Unmount any mounts
+    _umount_all
 
     cd "${CWD_ORIG}"
     if [ $# -gt 2 ]; then
