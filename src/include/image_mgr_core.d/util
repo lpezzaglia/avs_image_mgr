@@ -60,7 +60,7 @@ _do_install () {
 }
 
 _do_rpm () {
-    rpm --dbpath "$(_rootdir)/var/lib/rpm/" "$@"
+    rpm --root "$(_rootdir)" "$@"
 }
 
 _do_yum () {
