@@ -68,7 +68,7 @@ EOF
     # Install the RPMs provided by rinse
     # This is necessary since we are running without rinse's default
     # post-install scripts.
-    $RPM -i --nodeps \''/*rpm'\'
+    $RPM -i --nodeps "${_ROOTIMGDIR}"/rootimg/\''*rpm'\'
     $YUM clean all
     $YUM update
     $YUM check
