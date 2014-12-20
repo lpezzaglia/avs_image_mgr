@@ -1,3 +1,21 @@
+avs_image_mgr 0.13-pre		     2014-12-19
+======================================
+ * Loop-mounted ext4 filesystems are now used for image and addon
+   builds.
+ * Add experimental support for using "rinse" as an image building
+   backend by setting IMAGE_BACKEND=rinse.
+ * Separate logs are now kept from each addon and image build step.
+   Verbosity to stdout is greatly decreased.
+ * Drop all environment variables except PATH and TERM
+ * Fix a bug in the xCAT addon generation script which could cause
+   image builds to hang indefinitely during certificate generation.
+ * In EL images, all services are now disalbed by default.
+ * Numerous code cleanups and error handling improvements.  An attempt
+   is now made to print out the full environment and  grep out the
+   lines being executed in each frame.
+ * Add quick start guide.
+ * Add an example image configuration.
+
 avs_image_mgr 0.12.5                 2014-10-03
 ======================================
  * Prune locales after every yum invocation.
