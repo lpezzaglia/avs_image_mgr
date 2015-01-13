@@ -1,4 +1,4 @@
-avs_image_mgr 0.13-pre             2014-12-19
+avs_image_mgr 0.13.0             2015-01-13
 ======================================
  * Loop-mounted ext4 filesystems are now used for image and addon
    builds.
