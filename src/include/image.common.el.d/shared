@@ -35,8 +35,8 @@ install_file () {
 build_prep () {
 
     install_file etc/hosts         /etc/ 644 
-    install_file etc/hosts.allow   /etc/ 600 
-    install_file etc/hosts.deny    /etc/ 600 
+    install_file etc/hosts.allow   /etc/ 644 
+    install_file etc/hosts.deny    /etc/ 644 
     install_file etc/localtime     /etc/ 644 
     install_file etc/resolv.conf   /etc/ 644
         
