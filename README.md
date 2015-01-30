@@ -57,7 +57,7 @@ boot image using avs_image_mgr.
 
 1. Build the image:
 
-        ./image_mgr.sh create -p $IMAGE_NAME -o $ARCH -o $OS -u [your username] -m "Initial build"
+        ./image_mgr.sh create -p $IMAGE_NAME -a $ARCH -o $OS -u [your username] -m "Initial build"
 
     Note that committing the first image build to SVN will take some
     time.  Subsequent builds with fewer overall changes will commit more
@@ -83,15 +83,15 @@ boot image using avs_image_mgr.
 
 1. Once the image is built to your satisfaction, tag it:
 
-        ./image_mgr.sh tag -p $IMAGE_NAME -o $ARCH -o $OS
+        ./image_mgr.sh tag -p $IMAGE_NAME -a $ARCH -o $OS
 
 1. Display all available tags:
 
-        ./image_mgr.sh list-tags -p $IMAGE_NAME -o $ARCH -o $OS
+        ./image_mgr.sh list-tags -p $IMAGE_NAME -a $ARCH -o $OS
 
 1. Pack a tag as the test image using the masquerading (`-x`) feature
 
-        ./image_mgr.sh pack -p $IMAGE_NAME -o $ARCH -o $OS -t [tag name] -x $TEST_IMAGE_NAME
+        ./image_mgr.sh pack -p $IMAGE_NAME -a $ARCH -o $OS -t [tag name] -x $TEST_IMAGE_NAME
 
 1. Ask xCAT to boot a node with the new test image image:
 
@@ -101,7 +101,7 @@ boot image using avs_image_mgr.
 
 1. Once testing is complete, pack the tag as the production image
 
-        ./image_mgr.sh pack -p $IMAGE_NAME -o $ARCH -o $OS -t [tag name]
+        ./image_mgr.sh pack -p $IMAGE_NAME -a $ARCH -o $OS -t [tag name]
 
 1. Boot a node with the new production image:
 
